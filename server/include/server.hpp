@@ -3,6 +3,7 @@
 #include <string>
 
 #include "asio.hpp"
+#include "threadpool.hpp"
 
 class Server final
 {
@@ -25,6 +26,8 @@ private:
     asio::io_service m_io;
     asio::ip::tcp::acceptor m_acceptor;
     asio::ip::tcp::socket m_sock;
+
+    ThreadPool m_threads;
 
     void on_stop(const asio::error_code& ec, int signal_number);
     void on_accept(const asio::error_code& ec);
