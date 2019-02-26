@@ -3,18 +3,19 @@
 #include <string>
 
 #include "asio.hpp"
-#include "threadpool.hpp"
+#include "image_processor.hpp"
 
 class Server final
 {
 public:
     Server(const std::string& addr, int port, uint max_tasks)
         : m_addr(addr), m_port(port), m_max_tasks(max_tasks),
-        m_acceptor(m_io), m_sock(m_io)
+        m_acceptor(m_io), m_sock(m_io), m_proc(m_io, max_tasks)
     {}
 
     Server() = delete;
     Server(const Server&) = delete;
+    void operator=(const Server&) = delete;
 
     int Run();
 
@@ -27,7 +28,7 @@ private:
     asio::ip::tcp::acceptor m_acceptor;
     asio::ip::tcp::socket m_sock;
 
-    ThreadPool m_threads;
+    ImageProcessor m_proc;
 
     void shutdown();
     void on_stop(const asio::error_code& ec, int signal_number);

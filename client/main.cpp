@@ -9,6 +9,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
+    (void) argc; (void)argv;
     // cout << "Usage: <jpeg_source_filepath> <server_addr> <server_port> <timeout> <jpeg_output_filename>" << endl;
     asio::io_context io;
     asio::ip::tcp::socket sock(io); 

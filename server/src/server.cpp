@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "server.hpp"
-#include "task.hpp"
+#include "session.hpp"
 
 int Server::Run()
 {
@@ -21,6 +21,8 @@ int Server::Run()
 
         m_acceptor.async_accept(m_sock, std::bind(&Server::on_accept, this, std::placeholders::_1));
 
+        m_proc.Run();
+
         m_io.run();
     }
     catch (const std::exception& e)
@@ -35,6 +37,8 @@ int Server::Run()
 void Server::shutdown()
 {
     std::cerr << "Shutdowning..." << std::endl;
+
+    m_proc.Stop();
 
     m_io.stop();
 }
@@ -58,8 +62,8 @@ void Server::on_accept(const asio::error_code& ec)
     std::cerr << "Client accepted: " << m_sock.remote_endpoint().address().to_string()  
         << std::endl;
 
-    Task * task = new WatermarkTask(std::move(m_sock));
-    task->start();
+    Session * session = new ProtoSession(m_proc, std::move(m_sock));
+    session->start();
 
     m_acceptor.async_accept(m_sock, std::bind(&Server::on_accept, this, std::placeholders::_1));
 }

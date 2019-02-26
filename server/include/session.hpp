@@ -4,32 +4,39 @@
 #include <vector>
 
 #include "protocol.hpp"
+#include "image_processor.hpp"
 
-class Task
+// Общий класс - просто на случай, если будут задачи другого типа
+class Session
 {
 public:
-    explicit Task(asio::ip::tcp::socket&& sock)
-        : m_sock(std::move(sock)),
+    Session(ImageProcessor& proc, asio::ip::tcp::socket&& sock)
+        : m_proc(proc),
+        m_sock(std::move(sock)),
         m_recv_size(0), m_send_size(0),
         m_recv_buffer(nullptr), m_send_buffer(nullptr)
     {}
 
-    Task(const Task&) = delete;
+    Session(const Session&) = delete;
+    void operator=(const Session&) = delete;
     
-    Task(Task&& other)
-        : m_sock(std::move(other.m_sock))
+    Session(Session&& other)
+        : m_proc(other.m_proc),
+        m_sock(std::move(other.m_sock))
     {}
 
-    virtual ~Task() { m_sock.close(); }
+    virtual ~Session() { m_sock.close(); }
 
     virtual void start() = 0;
 
 protected:
+    ImageProcessor& m_proc;
+
     /* Интерфейс для сетевого взаимодействия для подклассов */
     void receive(uint8_t *buffer, size_t size);         // Запрос на получение порции данных размера size в буфер buffer
     void send(const uint8_t *buffer, size_t size);      // Запрос на отправку данных
 
-    /* Callbacks, которые нужно переопределить в подклассах */
+    /* Callbacks ввода/вывода, которые нужно переопределить в подклассах */
     virtual void on_receive() = 0;
     virtual void on_sent() = 0;
     virtual void on_error() = 0;
@@ -45,17 +52,19 @@ private:
     const uint8_t *m_send_buffer;
 };
 
-// Задача накладывания текста на изображение
-class WatermarkTask : public Task
+// Прием и отправка изображений по самопальному "протоколу"
+class ProtoSession : public Session
 {
 public:
-    explicit WatermarkTask(asio::ip::tcp::socket&& sock)
-        : Task(std::move(sock)),
+    explicit ProtoSession(ImageProcessor &pool, asio::ip::tcp::socket&& sock)
+        : Session(pool, std::move(sock)),
         m_state(State::kReadHeader),
         m_have_response(false)
     {}
 
     virtual void start() override { receive((uint8_t*) &m_header, sizeof(m_header)); }
+
+    void complete(std::vector<uint8_t> image);
 
 protected:
     virtual void on_receive() override;
@@ -72,7 +81,8 @@ private:
     std::vector<uint8_t> m_image_buffer;
 
     ProtoResponseHeader m_response;
-    std::vector<uint8_t> m_output;
 
     bool m_have_response;
+
+    void send_header(StatusCode code);
 };
