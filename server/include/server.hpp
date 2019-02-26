@@ -29,6 +29,7 @@ private:
 
     ThreadPool m_threads;
 
+    void shutdown();
     void on_stop(const asio::error_code& ec, int signal_number);
     void on_accept(const asio::error_code& ec);
 };

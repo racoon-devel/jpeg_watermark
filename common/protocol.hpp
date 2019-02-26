@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 
-#pragma pack()
+#pragma pack(1)
 
 #define PROTO_VALID_SIGN (0x3fe0) // сигнатура для проверка - для нашего ли сервера отправлен пакет
 
@@ -14,4 +14,17 @@ struct ProtoDataHeader
     size_t image_size; // Размер изображения
 };
 
-#pragma pack(pop)
+enum StatusCode 
+{
+    kStatusOK,      // Все ок, картинка обработана
+    kStatusBusy,    // Сервер занят
+    kStatusError    // Ошибка на стороне сервера
+};
+
+struct ProtoResponseHeader
+{
+    StatusCode code;
+    size_t image_size;
+};
+
+#pragma pack()

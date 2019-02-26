@@ -5,3 +5,5 @@ set(SOURCES
 )
 
 add_executable(jpeg_watermark_client ${SOURCES})
+
+target_link_libraries(jpeg_watermark_client Threads::Threads)
