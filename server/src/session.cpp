@@ -71,7 +71,7 @@ void ProtoSession::on_receive()
             std::cerr << "Image received" << std::endl;
             m_state = State::kProcessing;
 
-            if (!m_proc.Enqueue(Task(this, std::string(m_text_buffer.begin(), m_text_buffer.end()), std::move(m_image_buffer))))
+            if (!m_proc.Enqueue(Task(shared_from_this(), std::string(m_text_buffer.begin(), m_text_buffer.end()), std::move(m_image_buffer))))
             {
                 send_header(kStatusBusy);
             }

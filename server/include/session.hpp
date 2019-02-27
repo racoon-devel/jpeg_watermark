@@ -53,10 +53,10 @@ private:
 };
 
 // Прием и отправка изображений по самопальному "протоколу"
-class ProtoSession : public Session
+class ProtoSession : public Session, public std::enable_shared_from_this<ProtoSession>
 {
 public:
-    explicit ProtoSession(ImageProcessor &pool, asio::ip::tcp::socket&& sock)
+    ProtoSession(ImageProcessor &pool, asio::ip::tcp::socket&& sock)
         : Session(pool, std::move(sock)),
         m_state(State::kReadHeader),
         m_have_response(false)
@@ -65,11 +65,12 @@ public:
     virtual void start() override { receive((uint8_t*) &m_header, sizeof(m_header)); }
 
     void complete(std::vector<uint8_t> image);
-
 protected:
     virtual void on_receive() override;
     virtual void on_sent() override;
     virtual void on_error() override;
+
+
 
 private:
 

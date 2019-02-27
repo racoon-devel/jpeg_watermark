@@ -1,9 +1,11 @@
 #pragma once
 
 #include <string>
+#include <list>
 
 #include "asio.hpp"
 #include "image_processor.hpp"
+#include "session.hpp"
 
 class Server final
 {
@@ -27,6 +29,8 @@ private:
     asio::io_service m_io;
     asio::ip::tcp::acceptor m_acceptor;
     asio::ip::tcp::socket m_sock;
+
+    std::list<std::shared_ptr<Session>> m_sessions;
 
     ImageProcessor m_proc;
 

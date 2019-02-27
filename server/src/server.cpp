@@ -62,8 +62,11 @@ void Server::on_accept(const asio::error_code& ec)
     std::cerr << "Client accepted: " << m_sock.remote_endpoint().address().to_string()  
         << std::endl;
 
-    Session * session = new ProtoSession(m_proc, std::move(m_sock));
-    session->start();
+    auto session_ptr = std::make_shared<ProtoSession>(m_proc, std::move(m_sock));
+
+    m_sessions.push_back(session_ptr);
+
+    session_ptr->start();
 
     m_acceptor.async_accept(m_sock, std::bind(&Server::on_accept, this, std::placeholders::_1));
 }

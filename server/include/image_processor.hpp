@@ -17,7 +17,7 @@ struct Task
     : session(nullptr)
     {}
 
-    Task(ProtoSession * session, std::string&& text, std::vector<uint8_t>&& image)
+    Task(std::shared_ptr<ProtoSession> session, std::string&& text, std::vector<uint8_t>&& image)
     : session(session), text(std::move(text)), image(std::move(image))
     {}
 
@@ -37,7 +37,7 @@ struct Task
         image = std::move(task.image);
     }
 
-    ProtoSession * session;
+    std::shared_ptr<ProtoSession> session;
     std::string text;
     std::vector<uint8_t> image;
 };
