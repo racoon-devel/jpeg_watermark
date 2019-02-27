@@ -14,20 +14,17 @@ public:
         : m_proc(proc),
         m_sock(std::move(sock)),
         m_recv_size(0), m_send_size(0),
-        m_recv_buffer(nullptr), m_send_buffer(nullptr)
+        m_recv_buffer(nullptr), m_send_buffer(nullptr),
+        m_done(false)
     {}
 
     Session(const Session&) = delete;
     void operator=(const Session&) = delete;
-    
-    Session(Session&& other)
-        : m_proc(other.m_proc),
-        m_sock(std::move(other.m_sock))
-    {}
 
     virtual ~Session() { m_sock.close(); }
 
     virtual void start() = 0;
+    bool is_done() const { return m_done; }
 
 protected:
     ImageProcessor& m_proc;
@@ -35,6 +32,7 @@ protected:
     /* Интерфейс для сетевого взаимодействия для подклассов */
     void receive(uint8_t *buffer, size_t size);         // Запрос на получение порции данных размера size в буфер buffer
     void send(const uint8_t *buffer, size_t size);      // Запрос на отправку данных
+    void done() { m_done = true; m_sock.close(); }
 
     /* Callbacks ввода/вывода, которые нужно переопределить в подклассах */
     virtual void on_receive() = 0;
@@ -50,6 +48,7 @@ private:
     size_t m_recv_size, m_send_size;
     uint8_t *m_recv_buffer;
     const uint8_t *m_send_buffer;
+    bool m_done;
 };
 
 // Прием и отправка изображений по самопальному "протоколу"
@@ -59,20 +58,24 @@ public:
     ProtoSession(ImageProcessor &pool, asio::ip::tcp::socket&& sock)
         : Session(pool, std::move(sock)),
         m_state(State::kReadHeader),
-        m_have_response(false)
+        m_have_response(false),
+        m_have_errors(false)
     {}
 
     virtual void start() override { receive((uint8_t*) &m_header, sizeof(m_header)); }
 
+    /* Получение результата наложения водяной печати */
     void complete(std::vector<uint8_t> image);
+
 protected:
     virtual void on_receive() override;
     virtual void on_sent() override;
     virtual void on_error() override;
 
-
-
 private:
+
+    static const size_t m_max_image_size = 100 * 1024 * 1024; // Максимальный размер картинки - 100 Мбайт
+    static const size_t m_max_text_size = 512;
 
     enum class State { kReadHeader, kReadText, kReadImage, kProcessing, kWriteHeader, kWriteResult };
     State m_state;
@@ -84,6 +87,7 @@ private:
     ProtoResponseHeader m_response;
 
     bool m_have_response;
+    bool m_have_errors;
 
     void send_header(StatusCode code);
 };

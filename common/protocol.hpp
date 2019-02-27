@@ -18,6 +18,7 @@ enum StatusCode
 {
     kStatusOK,      // Все ок, картинка обработана
     kStatusBusy,    // Сервер занят
+    kStatusLimit,   // Превышен лимит размера данных
     kStatusError    // Ошибка на стороне сервера
 };
 

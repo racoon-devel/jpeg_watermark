@@ -53,7 +53,14 @@ void ProtoSession::on_receive()
     {
         case State::kReadHeader:
             std::cerr << "New request { text size: " << m_header.text_size << " image size: " << m_header.image_size << " }" << std::endl;
-            // TODO: Неплохо бы сделать ограничения на размер текста и картинки
+            
+            if (m_header.text_size > m_max_text_size || m_header.image_size > m_max_image_size)
+            {
+                std::cerr << "Data size limit reached" << std::endl;
+                send_header(StatusCode::kStatusLimit);
+                return ;
+            }
+
             m_text_buffer.resize(m_header.text_size);
             m_image_buffer.resize(m_header.image_size);
 
@@ -85,7 +92,16 @@ void ProtoSession::on_receive()
 
 void ProtoSession::on_error()
 {
-    send_header(kStatusError);
+    /* Если еще не было ошибок ввода/вывода - то сообщаем об ошибке */
+    if (!m_have_errors)
+    {
+        m_have_errors = true;
+        send_header(kStatusError);
+        return;
+    }
+
+    /* Не смогли отправить сообщение об ощибке - отключаемся */
+    done();
 }
 
 void ProtoSession::on_sent()
@@ -100,6 +116,7 @@ void ProtoSession::on_sent()
     else 
     {
         std::cerr << "Session done" << std::endl;
+        done();
     }
 }
 
