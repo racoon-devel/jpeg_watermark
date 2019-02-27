@@ -13,8 +13,7 @@ public:
     Session(ImageProcessor& proc, asio::ip::tcp::socket&& sock)
         : m_proc(proc),
         m_sock(std::move(sock)),
-        m_recv_size(0), m_send_size(0),
-        m_recv_buffer(nullptr), m_send_buffer(nullptr),
+        m_timer(m_sock.get_io_service()),
         m_done(false)
     {}
 
@@ -42,12 +41,13 @@ protected:
 private:
     void on_receive_internal(const asio::error_code& ec, size_t bytes);
     void on_sent_internal(const asio::error_code& ec, size_t bytes);
+    void timer_restart();
 
     asio::ip::tcp::socket m_sock;
+    asio::deadline_timer m_timer;
+
+    const uint m_io_timeout = 10; //таймаут на операции ввода/вывода в секундах
     
-    size_t m_recv_size, m_send_size;
-    uint8_t *m_recv_buffer;
-    const uint8_t *m_send_buffer;
     bool m_done;
 };
 
@@ -55,8 +55,8 @@ private:
 class ProtoSession : public Session, public std::enable_shared_from_this<ProtoSession>
 {
 public:
-    ProtoSession(ImageProcessor &pool, asio::ip::tcp::socket&& sock)
-        : Session(pool, std::move(sock)),
+    ProtoSession(ImageProcessor &proc, asio::ip::tcp::socket&& sock)
+        : Session(proc, std::move(sock)),
         m_state(State::kReadHeader),
         m_have_response(false),
         m_have_errors(false)

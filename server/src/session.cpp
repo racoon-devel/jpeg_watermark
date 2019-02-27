@@ -3,24 +3,28 @@
 
 void Session::receive(uint8_t *buffer, size_t size)
 {
-    m_recv_size = size;
-    m_recv_buffer = buffer;
-
-    m_sock.async_read_some(asio::buffer(buffer, size), std::bind(&Session::on_receive_internal, this, 
+    timer_restart();
+    
+    asio::async_read(m_sock, asio::buffer(buffer, size), std::bind(&Session::on_receive_internal, this, 
         std::placeholders::_1, std::placeholders::_2));
 }
 
 void Session::send(const uint8_t *buffer, size_t size)
 {
-    m_send_size = size;
-    m_send_buffer = buffer;
+    timer_restart();
 
-    m_sock.async_write_some(asio::buffer(buffer, size), std::bind(&Session::on_sent_internal, this, 
+    asio::async_write(m_sock, asio::buffer(buffer, size), std::bind(&Session::on_sent_internal, this, 
         std::placeholders::_1, std::placeholders::_2));
 }
 
 void Session::on_receive_internal(const asio::error_code& ec, size_t bytes)
-{
+{   
+    (void) bytes;
+
+    std::cerr << "Received " << bytes << std::endl;
+
+    m_timer.cancel();
+    
     if (ec) 
     {
         std::cerr << "Read error: " << ec.message() << std::endl;
@@ -28,13 +32,15 @@ void Session::on_receive_internal(const asio::error_code& ec, size_t bytes)
         return ;
     }
     
-    m_recv_size -= bytes;
-
-    m_recv_size ? receive(m_recv_buffer + bytes, m_recv_size) : on_receive();
+    on_receive();
 }
 
 void Session::on_sent_internal(const asio::error_code& ec, size_t bytes)
 {
+    (void) bytes;
+
+    m_timer.cancel();
+
     if (ec) 
     {
         std::cerr << "Write error: " << ec.message() << std::endl;
@@ -42,9 +48,21 @@ void Session::on_sent_internal(const asio::error_code& ec, size_t bytes)
         return ;
     }
     
-    m_send_size -= bytes;
+    on_sent();
+}
 
-    m_send_size ? send(m_send_buffer + bytes, m_send_size) : on_sent();
+void Session::timer_restart()
+{
+    m_timer.cancel();
+    m_timer.expires_from_now(boost::posix_time::seconds(m_io_timeout));
+    
+    m_timer.async_wait([this](const asio::error_code& ec)
+    {
+        if (!ec) {
+            std::cerr << "Connection timeout" << std::endl;
+            this->done();
+        }
+    });
 }
 
 void ProtoSession::on_receive()

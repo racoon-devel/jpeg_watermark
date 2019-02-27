@@ -39,6 +39,7 @@ private:
     ImageProcessor m_proc;
 
     void shutdown();
+    
     void on_stop(const asio::error_code& ec, int signal_number);
     void on_accept(const asio::error_code& ec);
     void on_tick(const asio::error_code& ec);

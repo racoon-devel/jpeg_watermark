@@ -63,8 +63,15 @@ void Server::on_accept(const asio::error_code& ec)
         return;
     }
 
-    std::cerr << "Client accepted: " << m_sock.remote_endpoint().address().to_string()  
-        << std::endl;
+    try
+    {
+        std::cerr << "Client accepted: " << m_sock.remote_endpoint().address().to_string()  
+            << std::endl;
+    }
+    catch(const asio::system_error& e)
+    {
+        std::cerr << e.what() << std::endl;
+    }
 
     auto session_ptr = std::make_shared<ProtoSession>(m_proc, std::move(m_sock));
 
