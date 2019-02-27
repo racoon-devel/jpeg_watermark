@@ -124,6 +124,7 @@ void ProtoSession::on_receive()
 
             if (!m_proc.Enqueue(Task(shared_from_this(), std::string(m_text_buffer.begin(), m_text_buffer.end()), std::move(m_image_buffer))))
             {
+                LOG(WARNING) << this << "Request rejected, max jobs count reached";
                 send_header(kStatusBusy);
             }
 

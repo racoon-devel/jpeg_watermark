@@ -24,6 +24,9 @@ ImageProcessor::ImageProcessor(asio::io_service& io, uint max_jobs)
 {
     if (!m_thread_count)
         m_thread_count = m_default_threads;
+
+    // Нет смысла порождать много потоков, если макс. кол-во одновременно работабщих задач ограничено
+    m_thread_count = std::min(m_thread_count, max_jobs);
 }
 
 void ImageProcessor::Run()

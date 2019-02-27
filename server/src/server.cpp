@@ -22,6 +22,11 @@ int Server::Run()
 
         m_acceptor.async_accept(m_sock, std::bind(&Server::on_accept, this, std::placeholders::_1));
 
+        LOG(INFO) << "Server started [ addr = " << m_addr
+            << ", port = " << m_port
+            << ", max jobs = " << m_max_tasks
+            << " ]";
+
         m_proc.Run();
 
         /* Таймер нужен для очистки завершенных сессий - не очень красиво, но здесь большой нагрузки не ожидается */

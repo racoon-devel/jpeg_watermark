@@ -4,7 +4,7 @@
 
 INITIALIZE_EASYLOGGINGPP
 
-int main()
+int main(int argc, char **argv)
 {
     el::Configurations defaultConf;
     defaultConf.setToDefault();
@@ -15,7 +15,23 @@ int main()
 
     LOG(INFO) << "Watermerk JPEG server";
 
-    Server server("127.0.0.1", 9001, 8);
+    if (argc != 4)
+    {
+        LOG(ERROR) << "Usage: <addr> <port> <max_jobs>";
+        return 1;
+    }
+
+    std::string addr(argv[1]);
+    int port = std::atoi(argv[2]);
+    uint max_jobs = std::atoi(argv[3]);
+
+    if (!port || !max_jobs)
+    {
+        LOG(ERROR) << "Invalid arguments";
+        return 1;
+    }
+
+    Server server(addr, port, max_jobs);
     
     return server.Run();
 }
