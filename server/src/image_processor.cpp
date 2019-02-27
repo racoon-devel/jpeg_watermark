@@ -27,7 +27,7 @@ void ImageProcessor::Run()
                 // XXX только для тестов серверной части
                 std::random_device rd;
                 std::mt19937 gen(rd());
-                std::uniform_int_distribution<> dis(300, 800);
+                std::uniform_int_distribution<> dis(3000, 4000);
 
                 while (true)
                 {
@@ -70,7 +70,7 @@ bool ImageProcessor::Enqueue(Task&& task)
     // Проверяем условие, достигнут ли максимум задач
     if (m_now_running.load() >= m_max_jobs)
         return false;
-        
+
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_tasks.push(std::move(task));

@@ -23,6 +23,10 @@ int Server::Run()
 
         m_proc.Run();
 
+        /* Таймер нужен для очистки завершенных сессий - не очень красиво, но здесь большой нагрузки не ожидается */
+        m_timer.expires_from_now(boost::posix_time::milliseconds(m_clear_timeout));
+        m_timer.async_wait(std::bind(&Server::on_tick, this, std::placeholders::_1));
+
         m_io.run();
     }
     catch (const std::exception& e)
@@ -69,4 +73,22 @@ void Server::on_accept(const asio::error_code& ec)
     session_ptr->start();
 
     m_acceptor.async_accept(m_sock, std::bind(&Server::on_accept, this, std::placeholders::_1));
+}
+
+void Server::on_tick(const asio::error_code& ec)
+{
+    if (ec)
+    {
+        std::cerr << "Timer error: " << ec.message() << std::endl;
+        return ;
+    }
+
+    std::cerr << "Clear resources" << std::endl;
+
+    m_sessions.remove_if([] (SessionPtr& session) { return session->is_done(); });
+
+    m_timer.expires_from_now(boost::posix_time::milliseconds(m_clear_timeout));
+    m_timer.async_wait(std::bind(&Server::on_tick, this, std::placeholders::_1));
+
+    std::cerr << "Active sessions: " << m_sessions.size() << std::endl;
 }
