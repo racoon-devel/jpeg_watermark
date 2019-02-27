@@ -1,6 +1,32 @@
 #include "session.hpp"
 #include <iostream>
 
+#include "easylogging++.h"
+
+std::ostream& operator<<(std::ostream& os, const Session * session)
+{
+    os << "[Session:" << session->identify() << "] ";
+    return os;
+}
+
+
+Session::Session(ImageProcessor& proc, asio::ip::tcp::socket&& sock)
+    : m_proc(proc),
+    m_sock(std::move(sock)),
+    m_timer(m_sock.get_io_service()),
+    m_done(false)
+{
+    try
+    {
+    m_identify = m_sock.remote_endpoint().address().to_string() + ":"
+        + std::to_string(m_sock.remote_endpoint().port());
+    }
+    catch(const std::exception&)
+    {
+        
+    }
+}
+
 void Session::receive(uint8_t *buffer, size_t size)
 {
     timer_restart();
@@ -21,16 +47,16 @@ void Session::on_receive_internal(const asio::error_code& ec, size_t bytes)
 {   
     (void) bytes;
 
-    std::cerr << "Received " << bytes << std::endl;
-
     m_timer.cancel();
     
     if (ec) 
     {
-        std::cerr << "Read error: " << ec.message() << std::endl;
+        LOG(ERROR) << this << "Read error: " << ec.message();
         on_error();
         return ;
     }
+
+    LOG(DEBUG) << this << "Received " << bytes << " bytes";
     
     on_receive();
 }
@@ -43,7 +69,7 @@ void Session::on_sent_internal(const asio::error_code& ec, size_t bytes)
 
     if (ec) 
     {
-        std::cerr << "Write error: " << ec.message() << std::endl;
+        LOG(ERROR) << this << "Write error: " << ec.message();
         on_error();
         return ;
     }
@@ -59,7 +85,7 @@ void Session::timer_restart()
     m_timer.async_wait([this](const asio::error_code& ec)
     {
         if (!ec) {
-            std::cerr << "Connection timeout" << std::endl;
+            LOG(ERROR) << this <<  "Connection timeout";
             this->done();
         }
     });
@@ -70,11 +96,11 @@ void ProtoSession::on_receive()
     switch (m_state)
     {
         case State::kReadHeader:
-            std::cerr << "New request { text size: " << m_header.text_size << " image size: " << m_header.image_size << " }" << std::endl;
+            LOG(DEBUG) << this << "New request { text size: " << m_header.text_size << " image size: " << m_header.image_size << " }";
             
             if (m_header.text_size > m_max_text_size || m_header.image_size > m_max_image_size)
             {
-                std::cerr << "Data size limit reached" << std::endl;
+                LOG(ERROR) << this << "Data size limit reached";
                 send_header(StatusCode::kStatusLimit);
                 return ;
             }
@@ -87,13 +113,13 @@ void ProtoSession::on_receive()
             break;
 
         case State::kReadText:
-            std::cerr << "Text received" << std::endl;
+            LOG(DEBUG) << this << "Text received";
             m_state = State::kReadImage;
             receive(&m_image_buffer[0], m_header.image_size);
             break;
 
         case State::kReadImage:
-            std::cerr << "Image received" << std::endl;
+            LOG(DEBUG) << this << "Image received";
             m_state = State::kProcessing;
 
             if (!m_proc.Enqueue(Task(shared_from_this(), std::string(m_text_buffer.begin(), m_text_buffer.end()), std::move(m_image_buffer))))
@@ -126,14 +152,12 @@ void ProtoSession::on_sent()
 {
     if (m_state == State::kWriteHeader && m_have_response)
     {
-        std::cerr << "Header sent" << std::endl;
-
         m_state = State::kWriteResult;
         send(&m_image_buffer[0], m_image_buffer.size());
     }
     else 
     {
-        std::cerr << "Session done" << std::endl;
+        LOG(INFO) << this << "Session done";
         done();
     }
 }
@@ -145,7 +169,7 @@ void ProtoSession::complete(std::vector<uint8_t> image)
 
     send_header(kStatusOK);
 
-    std::cerr << "Task done" << std::endl;
+    LOG(INFO) << this << "Image job done";
 }
 
 void ProtoSession::send_header(StatusCode code)

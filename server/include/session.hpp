@@ -10,12 +10,7 @@
 class Session
 {
 public:
-    Session(ImageProcessor& proc, asio::ip::tcp::socket&& sock)
-        : m_proc(proc),
-        m_sock(std::move(sock)),
-        m_timer(m_sock.get_io_service()),
-        m_done(false)
-    {}
+    Session(ImageProcessor& proc, asio::ip::tcp::socket&& sock);
 
     Session(const Session&) = delete;
     void operator=(const Session&) = delete;
@@ -23,7 +18,9 @@ public:
     virtual ~Session() { m_sock.close(); }
 
     virtual void start() = 0;
-    bool is_done() const { return m_done; }
+    
+    bool is_done()          const { return m_done; }
+    std::string identify()  const { return m_identify; }
 
 protected:
     ImageProcessor& m_proc;
@@ -39,6 +36,8 @@ protected:
     virtual void on_error() = 0;
 
 private:
+    std::string m_identify;
+
     void on_receive_internal(const asio::error_code& ec, size_t bytes);
     void on_sent_internal(const asio::error_code& ec, size_t bytes);
     void timer_restart();

@@ -2,6 +2,7 @@
 
 #include "server.hpp"
 #include "session.hpp"
+#include "easylogging++.h"
 
 int Server::Run()
 {
@@ -31,7 +32,7 @@ int Server::Run()
     }
     catch (const std::exception& e)
     {
-        std::cerr << "Run server failed: " << e.what() << std::endl;
+        LOG(ERROR) << "Run server failed: " << e.what();
         return 1;
     }
 
@@ -40,7 +41,7 @@ int Server::Run()
 
 void Server::shutdown()
 {
-    std::cerr << "Shutdowning..." << std::endl;
+    LOG(INFO) << "Shutdowning...";
 
     m_proc.Stop();
 
@@ -58,15 +59,14 @@ void Server::on_accept(const asio::error_code& ec)
 {
     if (ec)
     {
-        std::cerr << "Accept failed: " << ec.message() << std::endl;
+        LOG(ERROR) << "Accept failed: " << ec.message();
         shutdown();
         return;
     }
 
     try
     {
-        std::cerr << "Client accepted: " << m_sock.remote_endpoint().address().to_string()  
-            << std::endl;
+        LOG(DEBUG) << "Client accepted: " << m_sock.remote_endpoint().address().to_string();
     }
     catch(const asio::system_error& e)
     {
@@ -86,16 +86,19 @@ void Server::on_tick(const asio::error_code& ec)
 {
     if (ec)
     {
-        std::cerr << "Timer error: " << ec.message() << std::endl;
+        LOG(WARNING) << "Timer error: " << ec.message();
         return ;
     }
 
-    std::cerr << "Clear resources" << std::endl;
+    size_t total = m_sessions.size();
 
     m_sessions.remove_if([] (SessionPtr& session) { return session->is_done(); });
 
     m_timer.expires_from_now(boost::posix_time::milliseconds(m_clear_timeout));
     m_timer.async_wait(std::bind(&Server::on_tick, this, std::placeholders::_1));
 
-    std::cerr << "Active sessions: " << m_sessions.size() << std::endl;
+    total -= m_sessions.size();
+
+    if (total)
+        LOG(DEBUG) << "Release " << total << " sessions";
 }

@@ -4,7 +4,16 @@
 #include <iostream>
 #include <memory>
 #include <random>
+
 #include "session.hpp"
+#include "easylogging++.h"
+
+std::ostream& operator<<(std::ostream& os, const ImageProcessor * other)
+{   
+    (void)other;
+    os << "[Thread:" << std::this_thread::get_id() << "] ";
+    return os;
+}
 
 ImageProcessor::ImageProcessor(asio::io_service& io, uint max_jobs)
     : m_thread_count(std::thread::hardware_concurrency()),
@@ -29,6 +38,8 @@ void ImageProcessor::Run()
                 std::mt19937 gen(rd());
                 std::uniform_int_distribution<> dis(3000, 4000);
 
+                LOG(DEBUG) << this << "#" << idx << " Thread started";
+
                 while (true)
                 {
                     Task task;
@@ -37,9 +48,12 @@ void ImageProcessor::Run()
                         this->m_cond.wait(lock, [this] { return this->m_stop || !this->m_tasks.empty();});
 
                         if(this->m_stop)
+                        {
+                            LOG(DEBUG) << this << "#" << idx << " Thread stopped";
                             return;
+                        }
 
-                        std::cerr << "Thread #" << idx << " has a new job" << std::endl;
+                        LOG(INFO) << this << "#" << idx << " Starting new job...";
 
                         task = std::move(m_tasks.front());
  
@@ -51,6 +65,8 @@ void ImageProcessor::Run()
 
                     // запускаем задачу - пока просто ждем случайное время
                     std::this_thread::sleep_for(std::chrono::milliseconds(dis(gen)));
+
+                    LOG(INFO) << this << "#" << idx << " Job completed";
 
                     std::vector<uint8_t> fake_data(8192 * 32, 0);
                     auto session = task.session;
