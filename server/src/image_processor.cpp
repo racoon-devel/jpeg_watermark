@@ -39,7 +39,7 @@ void ImageProcessor::Run()
                 // XXX только для тестов серверной части
                 std::random_device rd;
                 std::mt19937 gen(rd());
-                std::uniform_int_distribution<> dis(3000, 4000);
+                std::uniform_int_distribution<> dis(80, 1400);
 
                 LOG(DEBUG) << this << "#" << idx << " Thread started";
 

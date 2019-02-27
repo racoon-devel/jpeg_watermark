@@ -1,50 +1,40 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
+#include <list>
 using namespace std;
 
-#include "protocol.hpp"
-
 #include "asio.hpp"
+#include "easylogging++.h"
+#include "client.hpp"
+
+INITIALIZE_EASYLOGGINGPP
 
 int main(int argc, char **argv)
 {
+    // TODO: сделать парсинг аргументов командной строки и загрузку изображения
     (void) argc; (void)argv;
     // cout << "Usage: <jpeg_source_filepath> <server_addr> <server_port> <timeout> <jpeg_output_filename>" << endl;
-    asio::io_context io;
-    asio::ip::tcp::socket sock(io); 
-    asio::ip::tcp::endpoint ep(asio::ip::address::from_string("127.0.0.1"), 9001);
+    
+    string addr = "127.0.0.1";
+    int port = 9001;
+    string text = "I am not a lamer!!!";
+    uint timeout = 10;
+    uint clients_count = 50;
+    
+    vector<uint8_t> m_source; m_source.resize(10 * 1024 * 1024, 0);
+    asio::io_service io;
 
-    vector<uint8_t> text; text.resize(100, 0);
-    vector<uint8_t> data; data.resize(1000, 0);
+    list<ProtoClient> clients; 
 
-    ProtoDataHeader header;
-    header.sign = PROTO_VALID_SIGN;
-    header.image_size = data.size();
-    header.text_size = text.size();
-
-    try 
+    for (uint i = 0; i < clients_count; i++)
     {
-        sock.open(asio::ip::tcp::v4());
-        sock.connect(ep);
-
-        sock.send(asio::buffer((void*) &header, sizeof(header)));
-        sock.send(asio::buffer(&text[0], text.size()));
-        sock.send(asio::buffer(&data[0], data.size()));
-
-        ProtoResponseHeader response;
-        sock.receive(asio::buffer((void *) &response, sizeof(response)));
-
-        cout << "Response: " << response.code << " " << response.image_size << endl;
-        vector<uint8_t> v; v.resize(response.image_size);
-        sock.receive(asio::buffer(&v[0], response.image_size));
-        sock.close();
-    }
-    catch (const exception& e)
-    {
-        cerr << "Connect failed: " << e.what() << endl;
+        clients.emplace_back(io, m_source, addr, port, text, timeout);
+        clients.back().Run();
     }
 
+    io.run();
 
     return 0;
 }

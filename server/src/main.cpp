@@ -15,6 +15,7 @@ int main(int argc, char **argv)
 
     LOG(INFO) << "Watermerk JPEG server";
 
+    // TODO: наверное, стоит прикрутить парсер аргументов
     if (argc != 4)
     {
         LOG(ERROR) << "Usage: <addr> <port> <max_jobs>";
@@ -32,6 +33,5 @@ int main(int argc, char **argv)
     }
 
     Server server(addr, port, max_jobs);
-    
     return server.Run();
 }
