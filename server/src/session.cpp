@@ -18,8 +18,8 @@ Session::Session(ImageProcessor& proc, asio::ip::tcp::socket&& sock)
 {
     try
     {
-    m_identify = m_sock.remote_endpoint().address().to_string() + ":"
-        + std::to_string(m_sock.remote_endpoint().port());
+        m_identify = m_sock.remote_endpoint().address().to_string() + ":"
+            + std::to_string(m_sock.remote_endpoint().port());
     }
     catch(const std::exception&)
     {
@@ -163,12 +163,18 @@ void ProtoSession::on_sent()
     }
 }
 
-// TODO: std::move
-void ProtoSession::complete(std::vector<uint8_t> image)
+void ProtoSession::complete(bool is_success, const std::vector<uint8_t> image)
 {
-    m_image_buffer = image;
-
-    send_header(kStatusOK);
+    if (is_success)
+    {
+        m_image_buffer = image;
+        send_header(kStatusOK);
+    }
+    else
+    {
+        send_header(kStatusError);
+    }
+    
 
     LOG(INFO) << this << "Image job done";
 }
@@ -180,6 +186,6 @@ void ProtoSession::send_header(StatusCode code)
     m_response.image_size = code == kStatusOK ? m_image_buffer.size() : 0;
     m_have_response = code == kStatusOK;
     
-    send((uint8_t*) &m_response, sizeof(m_response));    
+    send(reinterpret_cast<uint8_t*>(&m_response), sizeof(m_response));    
 }
 

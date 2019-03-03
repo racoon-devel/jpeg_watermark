@@ -64,7 +64,7 @@ public:
     virtual void start() override { receive((uint8_t*) &m_header, sizeof(m_header)); }
 
     /* Получение результата наложения водяной печати */
-    void complete(std::vector<uint8_t> image);
+    void complete(bool retval, const std::vector<uint8_t> image);
 
 protected:
     virtual void on_receive() override;

@@ -14,8 +14,6 @@
 #define cimg_plugin "plugins/jpeg_buffer.h"
 #include "CImg.h"
 
-
-
 std::ostream& operator<<(std::ostream& os, const ImageProcessor * other)
 {   
     (void)other;
@@ -71,14 +69,15 @@ void ImageProcessor::Run()
 
                     // запускаем задачу - накладываем watermark
                     Image result;
-                    draw_watermark(task.image, task.text, result);
+                    bool retval = draw_watermark(task.image, task.text, result);
 
                     LOG(INFO) << this << "#" << idx << " Job completed";
 
                     auto session = task.session;
+                    
                     // TODO: избежать копирования
                     // Отправляем оповещение о результате на главный поток
-                    m_io.post([session,  result] { session->complete(result); });
+                    m_io.post([session, retval, result] { session->complete(retval, result); });
 
                     this->m_now_running.fetch_sub(1);
                 }
@@ -89,12 +88,13 @@ void ImageProcessor::Run()
 
 bool ImageProcessor::Enqueue(Task&& task)
 {
-    // Проверяем условие, достигнут ли максимум задач
-    if (m_now_running.load() >= m_max_jobs)
-        return false;
-
     {
         std::unique_lock<std::mutex> lock(m_mutex);
+
+        // Проверяем условие, достигнут ли максимум задач - сколько сейчас в очереди и сколько в обработке
+        if (m_now_running.load() + m_tasks.size() >= m_max_jobs)
+            return false;
+        
         m_tasks.push(std::move(task));
     }
 
@@ -120,24 +120,31 @@ void ImageProcessor::Stop()
 
 bool ImageProcessor::draw_watermark(const Image& image, const std::string& text, Image& result)
 {
-    cimg_library::CImg<uint8_t> img;
+    try
+    {
+        cimg_library::CImg<uint8_t> img;
 
-    LOG(DEBUG) << this << "source image size = " << image.size();
+        LOG(DEBUG) << this << "source image size = " << image.size();
 
-    img.load_jpeg_buffer(&image[0], image.size());
+        img.load_jpeg_buffer(&image[0], image.size());
 
-    const unsigned char purple[] = { 255, 0, 0 };
-    const unsigned char black[] = { 0, 0, 0 };
-    img.draw_text(0,0,text.c_str(),purple,black,1,57);
+        const unsigned char green[] = { 0, 255, 0 };
+        img.draw_text(0,0,text.c_str(),green,0,1,57);
 
-    result.resize(image.size() * 2, 0);
-    uint size = result.size();
+        result.resize(image.size() * 2, 0);
+        uint size = result.size();
 
-    img.save_jpeg_buffer(&result[0], size, 90);
+        img.save_jpeg_buffer(&result[0], size, 90);
 
-    LOG(DEBUG) << this << "output image size = " << size;
+        LOG(DEBUG) << this << "output image size = " << size;
 
-    result.resize(size);
+        result.resize(size, 0);
+    }
+    catch (const cimg_library::CImgException& e)
+    {
+        LOG(ERROR) << "Image processing failed. " << e.what();
+        return false;
+    }
 
     return true;
 }
