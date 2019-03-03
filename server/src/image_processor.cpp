@@ -8,6 +8,14 @@
 #include "session.hpp"
 #include "easylogging++.h"
 
+#include <jpeglib.h>
+#include <jerror.h>
+#define cimg_display 0
+#define cimg_plugin "plugins/jpeg_buffer.h"
+#include "CImg.h"
+
+
+
 std::ostream& operator<<(std::ostream& os, const ImageProcessor * other)
 {   
     (void)other;
@@ -36,11 +44,6 @@ void ImageProcessor::Run()
         m_threads.emplace_back(
             [this, idx] 
             {
-                // XXX только для тестов серверной части
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<> dis(80, 1400);
-
                 LOG(DEBUG) << this << "#" << idx << " Thread started";
 
                 while (true)
@@ -66,16 +69,16 @@ void ImageProcessor::Run()
                     // взяли задачу в работу - увеличили счетчик
                     this->m_now_running.fetch_add(1);
 
-                    // запускаем задачу - пока просто ждем случайное время
-                    std::this_thread::sleep_for(std::chrono::milliseconds(dis(gen)));
+                    // запускаем задачу - накладываем watermark
+                    Image result;
+                    draw_watermark(task.image, task.text, result);
 
                     LOG(INFO) << this << "#" << idx << " Job completed";
 
-                    std::vector<uint8_t> fake_data(8192 * 32, 0);
                     auto session = task.session;
                     // TODO: избежать копирования
                     // Отправляем оповещение о результате на главный поток
-                    m_io.post([session,  fake_data] { session->complete(fake_data); });
+                    m_io.post([session,  result] { session->complete(result); });
 
                     this->m_now_running.fetch_sub(1);
                 }
@@ -113,4 +116,28 @@ void ImageProcessor::Stop()
         worker.join();
 
     m_threads.clear();
+}
+
+bool ImageProcessor::draw_watermark(const Image& image, const std::string& text, Image& result)
+{
+    cimg_library::CImg<uint8_t> img;
+
+    LOG(DEBUG) << this << "source image size = " << image.size();
+
+    img.load_jpeg_buffer(&image[0], image.size());
+
+    const unsigned char purple[] = { 255, 0, 0 };
+    const unsigned char black[] = { 0, 0, 0 };
+    img.draw_text(0,0,text.c_str(),purple,black,1,57);
+
+    result.resize(image.size() * 2, 0);
+    uint size = result.size();
+
+    img.save_jpeg_buffer(&result[0], size, 90);
+
+    LOG(DEBUG) << this << "output image size = " << size;
+
+    result.resize(size);
+
+    return true;
 }

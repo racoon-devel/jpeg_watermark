@@ -19,6 +19,9 @@ public:
 
     uint id() const { return m_id; }
 
+    bool is_success() const { return m_success; }
+    const Image& image() const { return m_result_image; }
+
 private:
     asio::io_service& m_io;
     const Image& m_image;
@@ -31,10 +34,11 @@ private:
     asio::deadline_timer m_timer;
 
     uint m_id;
-    vector<uint8_t> m_buffer;
+    Image m_buffer;
 
     ProtoResponseHeader m_header;
-    vector<uint8_t> m_result_image;
+    Image m_result_image;
+    bool m_success;
 
     void send_request();
     void on_receive(const asio::error_code& ec, size_t bytes);

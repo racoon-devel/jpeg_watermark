@@ -14,7 +14,8 @@ ProtoClient::ProtoClient(asio::io_service& io, const Image& image, const string&
     : m_io(io), m_image(image),
     m_addr(server_addr), m_port(server_port),
     m_text(text), m_reconnect_time(timeout), 
-    m_sock(io), m_timer(io), m_id(max_client_id++)
+    m_sock(io), m_timer(io), m_id(max_client_id++),
+    m_success(false)
 {
 
 }
@@ -114,4 +115,6 @@ void ProtoClient::on_receive(const asio::error_code& ec, size_t bytes)
 void ProtoClient::on_receive_image(const asio::error_code& ec, size_t bytes)
 {
     LOG(INFO) << this << "Image received";
+
+    m_success = true;
 }

@@ -11,13 +11,15 @@
 
 class ProtoSession;
 
+using Image = std::vector<uint8_t>;
+
 struct Task
 {
     Task()
     : session(nullptr)
     {}
 
-    Task(std::shared_ptr<ProtoSession> session, std::string&& text, std::vector<uint8_t>&& image)
+    Task(std::shared_ptr<ProtoSession> session, std::string&& text, Image&& image)
     : session(session), text(std::move(text)), image(std::move(image))
     {}
 
@@ -39,7 +41,7 @@ struct Task
 
     std::shared_ptr<ProtoSession> session;
     std::string text;
-    std::vector<uint8_t> image;
+    Image image;
 };
 
 class ImageProcessor final
@@ -71,4 +73,6 @@ private:
     std::condition_variable m_cond;
     bool m_stop;
     std::atomic<uint> m_now_running;
+
+    bool draw_watermark(const Image& image, const std::string& text, Image& result);
 };
