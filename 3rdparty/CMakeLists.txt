@@ -5,7 +5,7 @@ add_library(easylogging STATIC easyloggingpp/src/easylogging++.cc)
 target_include_directories(easylogging PUBLIC easyloggingpp/src)
 
 # используем потокобезопасность в логах
-#target_compile_definitions(easylogging PRIVATE -DELPP_THREAD_SAFE)
+target_compile_definitions(easylogging PUBLIC -DELPP_THREAD_SAFE)
 
 # библиотека для парсинга опций командной строки
 add_subdirectory(cxxopts)
