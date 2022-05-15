@@ -1,25 +1,24 @@
+#include <io_service.hpp>
+#include <utility>
 #include "../include/client.hpp"
 
 #include "easylogging++.h"
 
 static uint max_client_id;
 
-ostream& operator<<(ostream& os, ProtoClient* client)
+std::ostream& operator<<(std::ostream& os, ProtoClient* client)
 {
 	os << "[ Client: " << client->id() << " ] ";
 	return os;
 }
 
-ProtoClient::ProtoClient(asio::io_service& io, const Image& image,
-						 const string& server_addr, int server_port,
-						 const string& text, uint timeout)
-	: m_io(io), m_image(image), m_addr(server_addr), m_port(server_port),
-	  m_text(text), m_reconnect_time(timeout), m_sock(io), m_timer(io),
-	  m_id(max_client_id++), m_success(false)
+ProtoClient::ProtoClient(ProtoClient::Settings settings)
+	: m_settings(std::move(settings)), m_socket(IoService::get()),
+	  m_timer(IoService::get()), m_id(max_client_id++)
 {
 }
 
-void ProtoClient::Run()
+void ProtoClient::run()
 {
 	send_request();
 }
@@ -28,34 +27,35 @@ void ProtoClient::send_request()
 {
 	try
 	{
-		asio::ip::tcp::endpoint ep(asio::ip::address::from_string(m_addr),
-								   m_port);
-		m_sock.open(asio::ip::tcp::v4());
-		m_sock.connect(ep);
+		asio::ip::tcp::endpoint ep(
+			asio::ip::address::from_string(m_settings.address),
+			m_settings.port);
+		m_socket.open(asio::ip::tcp::v4());
+		m_socket.connect(ep);
 
-		m_buffer.resize(sizeof(ProtoDataHeader) + m_text.size()
-						+ m_image.size());
+		m_buffer.resize(sizeof(ProtoDataHeader) + m_settings.text.size()
+						+ m_settings.image.size());
 
 		auto ptr = &m_buffer[0];
 
-		ProtoDataHeader* header = (ProtoDataHeader*) ptr;
+		auto header = reinterpret_cast< ProtoDataHeader* >(ptr);
 		header->sign            = PROTO_VALID_SIGN;
-		header->text_size       = m_text.size();
-		header->image_size      = m_image.size();
+		header->text_size       = m_settings.text.size();
+		header->image_size      = m_settings.image.size();
 
 		ptr += sizeof(ProtoDataHeader);
-		memcpy(ptr, m_text.data(), m_text.size());
+		memcpy(ptr, m_settings.text.data(), m_settings.text.size());
 
-		ptr += m_text.size();
-		memcpy(ptr, m_image.data(), m_image.size());
+		ptr += m_settings.text.size();
+		memcpy(ptr, m_settings.image.data(), m_settings.image.size());
 
-		asio::async_write(m_sock, asio::buffer(&m_buffer[0], m_buffer.size()),
+		asio::async_write(m_socket, asio::buffer(&m_buffer[0], m_buffer.size()),
 						  [this](const asio::error_code& ec, size_t bytes)
 						  {
 							  asio::async_read(
-								  this->m_sock,
-								  asio::buffer((uint8_t*) &this->m_header,
-											   sizeof(this->m_header)),
+					m_socket,
+								  asio::buffer((uint8_t*) &m_header,
+											   sizeof(m_header)),
 								  std::bind(&ProtoClient::on_receive, this,
 											std::placeholders::_1,
 											std::placeholders::_2));
@@ -63,7 +63,7 @@ void ProtoClient::send_request()
 	}
 	catch (const std::exception& e)
 	{
-		LOG(ERROR) << this << "Connect failed. " << e.what();
+		LOG(ERROR) << this << "Connect failed: " << e.what();
 	}
 }
 
@@ -80,9 +80,9 @@ void ProtoClient::on_receive(const asio::error_code& ec, size_t bytes)
 	case kStatusBusy:
 		LOG(WARNING) << this << "Server busy. Reconnect after timeout";
 
-		m_timer.expires_from_now(std::chrono::seconds(m_reconnect_time));
+		m_timer.expires_from_now(std::chrono::seconds(m_settings.timeout_sec));
 
-		m_sock.close();
+		m_socket.close();
 
 		m_timer.async_wait(
 			[this](const asio::error_code& ec)
@@ -111,7 +111,7 @@ void ProtoClient::on_receive(const asio::error_code& ec, size_t bytes)
 		m_result_image.resize(m_header.image_size);
 
 		asio::async_read(
-			m_sock, asio::buffer(&m_result_image[0], m_result_image.size()),
+			m_socket, asio::buffer(&m_result_image[0], m_result_image.size()),
 			std::bind(&ProtoClient::on_receive_image, this,
 					  std::placeholders::_1, std::placeholders::_2));
 		break;

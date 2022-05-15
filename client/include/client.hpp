@@ -1,46 +1,68 @@
 #include <string>
 #include <vector>
-using namespace std;
+#include <timer.hpp>
 
 #include "protocol.hpp"
+#include "image.hpp"
 #include "asio.hpp"
 
+/**
+ * @class ProtoClient клиент для сервера обработки изображений по
+ * самопальному протоколу
+ */
 class ProtoClient final
 {
 public:
-	using Image = vector< uint8_t >;
+	/**
+	 * @struct Settings настройки клиента
+	 */
+	struct Settings
+	{
+		//! изображение для обработки
+		Image image;
 
-	ProtoClient(asio::io_service& io, const Image& image,
-				const string& server_addr, int server_port, const string& text,
-				uint timeout);
+		//! IP-адрес сервера
+		std::string address{"127.0.0.1"};
+
+		//! порт сервера
+		uint port{9001};
+
+		//! текст для печати
+		std::string text;
+
+		//! интервал переподключения, если сервер занят
+		uint timeout_sec{5};
+	};
+
+	explicit ProtoClient(Settings settings);
 
 	ProtoClient(const ProtoClient&)             = delete;
 	ProtoClient& operator==(const ProtoClient&) = delete;
 
-	void Run();
+	//! запуск клиента
+	void run();
 
+	//! идентификатор клиента
 	uint id() const { return m_id; }
 
+	//! закончилось ли успехом обработка изображения
 	bool         is_success() const { return m_success; }
+
+	//! результирующее изображение
 	const Image& image() const { return m_result_image; }
 
 private:
-	asio::io_service& m_io;
-	const Image&      m_image;
-	string            m_addr;
-	int               m_port;
-	string            m_text;
-	uint              m_reconnect_time;
+	Settings m_settings;
 
-	asio::ip::tcp::socket                                   m_sock;
-	asio::basic_waitable_timer< std::chrono::steady_clock > m_timer;
+	asio::ip::tcp::socket m_socket;
+	DeadlineTimer         m_timer;
 
 	uint  m_id;
 	Image m_buffer;
 
 	ProtoResponseHeader m_header;
 	Image               m_result_image;
-	bool                m_success;
+	bool                m_success{false};
 
 	void send_request();
 	void on_receive(const asio::error_code& ec, size_t bytes);

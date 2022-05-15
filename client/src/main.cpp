@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <list>
+#include <io_service.hpp>
 using namespace std;
 
 #include "asio.hpp"
@@ -12,7 +13,7 @@ using namespace std;
 
 INITIALIZE_EASYLOGGINGPP
 
-bool load_image(const string& filepath, ProtoClient::Image& image)
+bool load_image(const string& filepath, Image& image)
 {
 	ifstream is(filepath, ios::binary);
 
@@ -32,7 +33,7 @@ bool load_image(const string& filepath, ProtoClient::Image& image)
 	return true;
 }
 
-void save_image(const string& filepath, const ProtoClient::Image& image)
+void save_image(const string& filepath, const Image& image)
 {
 	ofstream os(filepath, ios::binary);
 
@@ -63,26 +64,27 @@ int main(int argc, char** argv)
 	cxxopts::Options options("Watermark Client",
 							 "Client for the demo JPEG Watermark server");
 
+	ProtoClient::Settings settings;
+
 	options.add_options()(
 		"a,addr", "Address",
-		cxxopts::value< string >()->default_value("127.0.0.1"),
-		"Server IPv4 address")("p,port", "Port",
-							   cxxopts::value< int >()->default_value("9001"),
-							   "Server port")(
-		"i,image", "Image", cxxopts::value< string >(), "Source image path")(
-		"T,text", "Text", cxxopts::value< string >(), "Text for drawing")(
-		"t,timeout", "Timeout", cxxopts::value< uint >()->default_value("10"),
-		"Server reconnect interval")(
+		cxxopts::value< string >()->default_value(settings.address),
+		"Server IPv4 address")(
+		"p,port", "Port",
+		cxxopts::value< int >()->default_value(std::to_string(settings.port)),
+		"Server port")("i,image", "Image", cxxopts::value< string >(),
+					   "Source image path")(
+		"T,text", "Text", cxxopts::value< string >(),
+		"Text for drawing")("t,timeout", "Timeout",
+							cxxopts::value< uint >()->default_value(
+								std::to_string(settings.timeout_sec)),
+							"Server reconnect interval")(
 		"c,clients", "Clients", cxxopts::value< uint >()->default_value("1"),
 		"Clients count")(
 		"o,output", "Output",
 		cxxopts::value< string >()->default_value("output.jpg"),
 		"Image path for result")("help", "Print help");
 
-	string addr;
-	int    port;
-	string text;
-	uint   timeout;
 	uint   clients_count;
 	string image_path, output_path;
 
@@ -96,13 +98,13 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		addr          = opts["addr"].as< string >();
-		port          = opts["port"].as< int >();
-		image_path    = opts["image"].as< string >();
-		text          = opts["text"].as< string >();
-		timeout       = opts["timeout"].as< uint >();
-		output_path   = opts["output"].as< string >();
-		clients_count = opts["clients"].as< uint >();
+		settings.address     = opts["addr"].as< string >();
+		settings.port        = opts["port"].as< int >();
+		image_path           = opts["image"].as< string >();
+		settings.text        = opts["text"].as< string >();
+		settings.timeout_sec = opts["timeout"].as< uint >();
+		output_path          = opts["output"].as< string >();
+		clients_count        = opts["clients"].as< uint >();
 	}
 	catch (const cxxopts::OptionException& e)
 	{
@@ -110,40 +112,44 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	ProtoClient::Image image;
-
-	if (!load_image(image_path, image))
+	if (!load_image(image_path, settings.image))
 	{
 		LOG(ERROR) << "Load " << image_path << " failed";
 		return 1;
 	}
 
-	asio::io_service io;
-
 	list< ProtoClient > clients;
 
 	for (uint i = 0; i < clients_count; i++)
 	{
-		clients.emplace_back(io, image, addr, port, text, timeout);
-		clients.back().Run();
+		clients.emplace_back(settings);
+		clients.back().run();
 	}
 
-	io.run();
+	IoService::get().run();
 
 	uint idx = 0;
+	int  ret = 0;
 
 	for (const auto& client : clients)
 	{
 		if (client.is_success())
 		{
-			save_image(clients_count != 1
-						   ? to_string(idx + 1) + "_" + output_path
-						   : output_path,
-					   client.image());
+			auto file_path = clients_count != 1
+				? to_string(idx + 1) + "_" + output_path
+				: output_path;
+
+			save_image(file_path, client.image());
+
+			LOG(INFO) << "Image " << file_path << " saved";
+		}
+		else
+		{
+			ret = 1;
 		}
 
 		idx++;
 	}
 
-	return 0;
+	return ret;
 }
