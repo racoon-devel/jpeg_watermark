@@ -7,7 +7,7 @@ using namespace std;
 
 #include "asio.hpp"
 #include "easylogging++.h"
-#include "client.hpp"
+#include "../include/client.hpp"
 #include "cxxopts.hpp"
 
 INITIALIZE_EASYLOGGINGPP
