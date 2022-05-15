@@ -3,11 +3,15 @@ cmake_minimum_required(VERSION 3.9)
 add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 
 set(SOURCES
-    src/image_processor.cpp
-    src/main.cpp
-    src/server.cpp
-    src/session.cpp
-)
+        src/main.cpp
+        src/service.cpp
+        src/server.cpp
+        src/session_manager.cpp
+        src/session.cpp
+        src/worker_pool.cpp
+        src/task.cpp
+        src/watermark_task.cpp
+        )
 
 add_executable(jpeg_watermark_server ${SOURCES})
 add_dependencies(jpeg_watermark_server easylogging cxxopts cimg asio)

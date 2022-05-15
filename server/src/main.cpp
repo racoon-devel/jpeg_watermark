@@ -1,7 +1,7 @@
 
 #include "easylogging++.h"
-#include "server.hpp"
 #include "cxxopts.hpp"
+#include "service.hpp"
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -16,22 +16,23 @@ int main(int argc, char** argv)
 
 	LOG(INFO) << "Watermark JPEG server";
 
+	// Дефолтовые настройки сервиса по умолчанию
+	Service::Settings settings;
+
 	// Parse options
 	cxxopts::Options options("Watermark JPEG Server",
 							 "Server for drawing watermarks");
 
 	options.add_options()(
 		"a,addr", "Address",
-		cxxopts::value< std::string >()->default_value("127.0.0.1"),
-		"Server IPv4 address")("p,port", "Port",
-							   cxxopts::value< int >()->default_value("9001"),
-							   "Server port")(
-		"L,limit", "Limit", cxxopts::value< uint >()->default_value("10"),
-		"Maximum jobs limitation")("help", "Print help");
-
-	std::string addr;
-	int         port;
-	uint        max_jobs;
+		cxxopts::value< std::string >()->default_value(settings.address),
+		"Server IPv4 address")(
+		"p,port", "Port",
+		cxxopts::value< uint >()->default_value(std::to_string(settings.port)),
+		"Server port")("L,limit", "Limit",
+					   cxxopts::value< uint >()->default_value(
+						   std::to_string(settings.max_jobs)),
+					   "Maximum jobs limitation")("help", "Print help");
 
 	try
 	{
@@ -43,9 +44,9 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		addr     = opts["addr"].as< std::string >();
-		port     = opts["port"].as< int >();
-		max_jobs = opts["limit"].as< uint >();
+		settings.address  = opts["addr"].as< std::string >();
+		settings.port     = opts["port"].as< uint >();
+		settings.max_jobs = opts["limit"].as< uint >();
 	}
 	catch (const cxxopts::OptionException& e)
 	{
@@ -53,12 +54,16 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	if (!port || !max_jobs)
+	try
 	{
-		LOG(ERROR) << "Invalid arguments";
-		return 1;
+		Service service(settings);
+		service.run();
+		return 0;
+	}
+	catch (const std::exception& e)
+	{
+		LOG(FATAL) << e.what();
 	}
 
-	Server server(addr, port, max_jobs);
-	return server.Run();
+	return 1;
 }

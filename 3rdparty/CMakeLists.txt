@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.9)
 
 # соберем библиотеку логирования, там есть поддержка CMAKE, но она уродская
-add_library(easylogging STATIC easyloggingpp/src/easylogging++.h easyloggingpp/src/easylogging++.cc)
+add_library(easylogging STATIC easyloggingpp/src/easylogging++.cc)
 target_include_directories(easylogging PUBLIC easyloggingpp/src)
 
 # используем потокобезопасность в логах
-target_compile_definitions(easylogging PRIVATE -DELPP_THREAD_SAFE)
+#target_compile_definitions(easylogging PRIVATE -DELPP_THREAD_SAFE)
 
 # библиотека для парсинга опций командной строки
 add_subdirectory(cxxopts)

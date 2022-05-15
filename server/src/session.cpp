@@ -1,5 +1,7 @@
 #include "session.hpp"
 #include <iostream>
+#include <task/watermark_task.hpp>
+#include <io_service.hpp>
 
 #include "easylogging++.h"
 
@@ -9,8 +11,8 @@ std::ostream& operator<<(std::ostream& os, const Session* session)
 	return os;
 }
 
-Session::Session(ImageProcessor& proc, asio::ip::tcp::socket&& sock)
-	: m_proc(proc), m_sock(std::move(sock)), m_timer(m_sock.get_io_service()),
+Session::Session(IInvoker& proc, asio::ip::tcp::socket&& sock)
+	: m_proc(proc), m_sock(std::move(sock)), m_timer(IoService::get()),
 	  m_done(false)
 {
 	try
@@ -121,19 +123,27 @@ void ProtoSession::on_receive()
 		break;
 
 	case State::kReadImage:
+	{
 		LOG(DEBUG) << this << "Image received";
 		m_state = State::kProcessing;
 
-		if (!m_proc.Enqueue(
-				Task(shared_from_this(),
-					 std::string(m_text_buffer.begin(), m_text_buffer.end()),
-					 std::move(m_image_buffer))))
+		auto completeHandler = [session = shared_from_this()]() noexcept
+		{
+			IoService::get().post([session] { session->on_complete(); });
+		};
+
+		m_task = std::make_shared< WatermarkTask >(
+			std::move(completeHandler), std::move(m_image_buffer),
+			std::string(m_text_buffer.begin(), m_text_buffer.end()));
+
+		if (!m_proc.invoke(m_task))
 		{
 			LOG(WARNING) << this << "Request rejected, max jobs count reached";
 			send_header(kStatusBusy);
 		}
 
 		break;
+	}
 
 	default:
 		return;
@@ -168,21 +178,6 @@ void ProtoSession::on_sent()
 	}
 }
 
-void ProtoSession::complete(bool is_success, const std::vector< uint8_t > image)
-{
-	if (is_success)
-	{
-		m_image_buffer = image;
-		send_header(kStatusOK);
-	}
-	else
-	{
-		send_header(kStatusError);
-	}
-
-	LOG(INFO) << this << "Image job done";
-}
-
 void ProtoSession::send_header(StatusCode code)
 {
 	m_state               = State::kWriteHeader;
@@ -191,4 +186,20 @@ void ProtoSession::send_header(StatusCode code)
 	m_have_response       = code == kStatusOK;
 
 	send(reinterpret_cast< uint8_t* >(&m_response), sizeof(m_response));
+}
+
+void ProtoSession::on_complete()
+{
+	try
+	{
+		// TODO: avoid copy
+		m_image_buffer = m_task->result();
+		send_header(kStatusOK);
+	}
+	catch (const std::exception& e)
+	{
+		LOG(ERROR) << "Process task failed: " << e.what();
+		send_header(kStatusError);
+	}
+	LOG(INFO) << this << "Image job done";
 }
