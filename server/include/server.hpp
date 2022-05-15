@@ -32,7 +32,7 @@ private:
     asio::io_service m_io;
     asio::ip::tcp::acceptor m_acceptor;
     asio::ip::tcp::socket m_sock;
-    asio::deadline_timer m_timer;
+    asio::basic_waitable_timer<std::chrono::steady_clock> m_timer;
 
     std::list<SessionPtr> m_sessions;
 

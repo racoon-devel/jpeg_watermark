@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(jpeg_watermark VERSION 1.0)
-
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules")
+project(jpeg_watermark VERSION 1.1)
 
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 
@@ -20,10 +18,10 @@ find_package(JPEG REQUIRED)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/common")
 
-add_subdirectory("libs")
+add_subdirectory(3rdparty)
 
-add_subdirectory("server")
+add_subdirectory(server)
 
-add_subdirectory("client")
+add_subdirectory(client)
 
 

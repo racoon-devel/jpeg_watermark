@@ -80,7 +80,7 @@ void Session::on_sent_internal(const asio::error_code& ec, size_t bytes)
 void Session::timer_restart()
 {
     m_timer.cancel();
-    m_timer.expires_from_now(boost::posix_time::seconds(m_io_timeout));
+    m_timer.expires_from_now(std::chrono::seconds(m_io_timeout));
     
     m_timer.async_wait([this](const asio::error_code& ec)
     {

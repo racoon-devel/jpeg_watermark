@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asio.hpp"
+
 #include <vector>
 
 #include "protocol.hpp"
@@ -18,7 +19,7 @@ public:
     virtual ~Session() { m_sock.close(); }
 
     virtual void start() = 0;
-    
+
     bool is_done()          const { return m_done; }
     std::string identify()  const { return m_identify; }
 
@@ -43,10 +44,10 @@ private:
     void timer_restart();
 
     asio::ip::tcp::socket m_sock;
-    asio::deadline_timer m_timer;
+    asio::basic_waitable_timer<std::chrono::steady_clock> m_timer;
 
     const uint m_io_timeout = 10; //таймаут на операции ввода/вывода в секундах
-    
+
     bool m_done;
 };
 

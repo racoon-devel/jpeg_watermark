@@ -10,13 +10,8 @@ set(SOURCES
 )
 
 add_executable(jpeg_watermark_server ${SOURCES})
+add_dependencies(jpeg_watermark_server easylogging cxxopts cimg asio)
 
-add_dependencies(jpeg_watermark_server easylogging)
+target_include_directories(jpeg_watermark_server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-target_compile_definitions(jpeg_watermark_server PUBLIC -Dcimg_use_jpeg)
-
-target_include_directories(jpeg_watermark_server PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_include_directories(jpeg_watermark_server PUBLIC "${CMAKE_SOURCE_DIR}/libs/easylogging")
-target_include_directories(jpeg_watermark_server PUBLIC "${CMAKE_SOURCE_DIR}/libs/CImg")
-
-target_link_libraries(jpeg_watermark_server Threads::Threads easylogging ${JPEG_LIBRARIES})
+target_link_libraries(jpeg_watermark_server Threads::Threads easylogging cxxopts cimg asio ${JPEG_LIBRARIES})

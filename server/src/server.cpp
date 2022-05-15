@@ -30,7 +30,7 @@ int Server::Run()
         m_proc.Run();
 
         /* Таймер нужен для очистки завершенных сессий - не очень красиво, но здесь большой нагрузки не ожидается */
-        m_timer.expires_from_now(boost::posix_time::milliseconds(m_clear_timeout));
+        m_timer.expires_from_now(std::chrono::milliseconds(m_clear_timeout));
         m_timer.async_wait(std::bind(&Server::on_tick, this, std::placeholders::_1));
 
         m_io.run();
@@ -99,7 +99,7 @@ void Server::on_tick(const asio::error_code& ec)
 
     m_sessions.remove_if([] (SessionPtr& session) { return session->is_done(); });
 
-    m_timer.expires_from_now(boost::posix_time::milliseconds(m_clear_timeout));
+    m_timer.expires_from_now(std::chrono::milliseconds(m_clear_timeout));
     m_timer.async_wait(std::bind(&Server::on_tick, this, std::placeholders::_1));
 
     total -= m_sessions.size();

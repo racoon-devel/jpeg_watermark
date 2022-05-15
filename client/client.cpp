@@ -74,7 +74,7 @@ void ProtoClient::on_receive(const asio::error_code& ec, size_t bytes)
         case kStatusBusy:
             LOG(WARNING) << this << "Server busy. Reconnect after timeout";
 
-            m_timer.expires_from_now(boost::posix_time::seconds(m_reconnect_time));
+            m_timer.expires_from_now(std::chrono::seconds(m_reconnect_time));
 
             m_sock.close();
             
