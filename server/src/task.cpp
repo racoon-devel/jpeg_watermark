@@ -10,6 +10,8 @@ void Task::execute() noexcept
 	{
 		m_exception = std::current_exception();
 	}
+
+	m_handler();
 }
 
 Image Task::result() const
@@ -21,4 +23,3 @@ Image Task::result() const
 
 	return m_result;
 }
-

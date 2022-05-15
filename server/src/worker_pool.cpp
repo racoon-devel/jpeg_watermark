@@ -17,7 +17,10 @@ WorkerPool::WorkerPool(uint max_jobs)
 
 	// нет смысла порождать много потоков, если макс. кол-во одновременно
 	// работающих задач ограничено
-	m_thread_count = std::min(m_thread_count, max_jobs);
+	if (max_jobs)
+	{
+		m_thread_count = std::min(m_thread_count, max_jobs);
+	}
 }
 
 void WorkerPool::run()
@@ -72,7 +75,7 @@ bool WorkerPool::invoke(TaskPtr task)
 
 		// Проверяем условие, достигнут ли максимум задач - сколько сейчас в
 		// очереди и сколько в обработке
-		if (m_now_running.load() + m_tasks.size() >= m_max_jobs)
+		if (m_max_jobs && m_now_running.load() + m_tasks.size() >= m_max_jobs)
 			return false;
 
 		m_tasks.push(std::move(task));
