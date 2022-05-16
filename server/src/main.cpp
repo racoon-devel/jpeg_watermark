@@ -12,6 +12,7 @@ int main(int argc, char** argv)
 
 	defaultConf.setGlobally(el::ConfigurationType::Format,
 							"%datetime [%level] %msg");
+	el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
 	el::Loggers::reconfigureLogger("default", defaultConf);
 
 	LOG(INFO) << "Watermark JPEG server";

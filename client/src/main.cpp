@@ -8,7 +8,8 @@ using namespace std;
 
 #include "asio.hpp"
 #include "easylogging++.h"
-#include "../include/client.hpp"
+#include "client.hpp"
+#include "request.hpp"
 #include "cxxopts.hpp"
 
 INITIALIZE_EASYLOGGINGPP
@@ -64,7 +65,8 @@ int main(int argc, char** argv)
 	cxxopts::Options options("Watermark Client",
 							 "Client for the demo JPEG Watermark server");
 
-	ProtoClient::Settings settings;
+	Client::Settings settings;
+	PrintTextRequest request;
 
 	options.add_options()(
 		"a,addr", "Address",
@@ -101,7 +103,7 @@ int main(int argc, char** argv)
 		settings.address     = opts["addr"].as< string >();
 		settings.port        = opts["port"].as< int >();
 		image_path           = opts["image"].as< string >();
-		settings.text        = opts["text"].as< string >();
+		request.text         = opts["text"].as< string >();
 		settings.timeout_sec = opts["timeout"].as< uint >();
 		output_path          = opts["output"].as< string >();
 		clients_count        = opts["clients"].as< uint >();
@@ -112,18 +114,18 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	if (!load_image(image_path, settings.image))
+	if (!load_image(image_path, request.image))
 	{
 		LOG(ERROR) << "Load " << image_path << " failed";
 		return 1;
 	}
 
-	list< ProtoClient > clients;
+	list< Client > clients;
 
 	for (uint i = 0; i < clients_count; i++)
 	{
 		clients.emplace_back(settings);
-		clients.back().run();
+		clients.back().execute(request);
 	}
 
 	IoService::get().run();

@@ -1,3 +1,4 @@
+#include <session_proto.hpp>
 #include "session_manager.hpp"
 
 #include "session.hpp"
@@ -17,14 +18,15 @@ void SessionManager::run()
 		std::bind(&SessionManager::on_tick, this, std::placeholders::_1));
 }
 
-void SessionManager::add_session(IInvoker& invoker, asio::ip::tcp::socket&& socket)
+void SessionManager::add_session(IInvoker&               invoker,
+								 asio::ip::tcp::socket&& socket)
 {
 	auto session_ptr =
 		std::make_shared< ProtoSession >(invoker, std::move(socket));
 
 	m_sessions.push_back(session_ptr);
 
-	session_ptr->start();
+	session_ptr->run();
 }
 
 void SessionManager::on_tick(const asio::error_code& ec)
@@ -46,5 +48,7 @@ void SessionManager::on_tick(const asio::error_code& ec)
 	total -= m_sessions.size();
 
 	if (total)
-		LOG(DEBUG) << "Release " << total << " sessions";
+	{
+		LOG(DEBUG) << total << " sessions released";
+	}
 }

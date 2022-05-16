@@ -11,7 +11,7 @@ struct Service;
 /**
  * @class Service "фасад" сервиса обработки изображений
  */
-class Service
+class Service final
 {
 public:
 	/**

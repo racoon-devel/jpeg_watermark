@@ -4,6 +4,8 @@ project(jpeg_watermark VERSION 1.1)
 
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 
+option(WITH_ASAN "Build with address sanitizer" OFF)
+
 # set C++14 option
 set (CMAKE_CXX_STANDARD 14)
 

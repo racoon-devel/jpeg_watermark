@@ -39,7 +39,7 @@ public:
 	 * @return Изображение
 	 * @throw Исключение, которое произошло при выполнении операции
 	 */
-	Image result() const;
+	const Image& result() const;
 
 	virtual ~Task() = default;
 

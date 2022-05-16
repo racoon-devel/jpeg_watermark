@@ -5,11 +5,17 @@
 #include "task.hpp"
 
 /**
- * @class WatermarkTask задача наложения водяной печати на изображения
+ * @class WatermarkTask задача наложения текста на изображение
  */
 class WatermarkTask : public Task
 {
 public:
+	/**
+	 * Ctor
+	 * @param handler Обработчик завершения задачи
+	 * @param source_image Изображение
+	 * @param text Текст для наложения
+	 */
 	WatermarkTask(Task::CompleteHandler&& handler, Image&& source_image,
 				  std::string&& text);
 

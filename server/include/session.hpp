@@ -1,108 +1,58 @@
 #pragma once
 
+#include <timer.hpp>
 #include "asio.hpp"
 
-#include <vector>
-
-#include "protocol.hpp"
 #include "task/invoker.hpp"
 
-// Общий класс - просто на случай, если будут задачи другого типа
+/**
+ * @class Session базовый класс обработки сессии с клиентом
+ */
 class Session
 {
 public:
-	Session(IInvoker& proc, asio::ip::tcp::socket&& sock);
+	/**
+	 * Ctor
+	 * @param invoker Интерфейс для выполнения задач
+	 * @param socket Сокет соединения
+	 */
+	Session(IInvoker& invoker, asio::ip::tcp::socket&& socket);
 
-	Session(const Session&) = delete;
-	void operator=(const Session&) = delete;
+	/**
+	 * Запуск взаимодействия с клиентом
+	 * @throw any exception
+	 */
+	virtual void run() = 0;
 
-	virtual ~Session() { m_sock.close(); }
+	//! флаг, что сессия завершилась
+	bool is_done() const noexcept { return m_done; }
 
-	virtual void start() = 0;
+	//! ID сессии для логирования
+	std::string identity() const noexcept { return m_identity; }
 
-	bool        is_done() const { return m_done; }
-	std::string identify() const { return m_identify; }
+	virtual ~Session() = default;
 
 protected:
-	IInvoker& m_proc;
+	IInvoker& m_invoker;
 
-	/* Интерфейс для сетевого взаимодействия для подклассов */
-	void receive(uint8_t* buffer,
-				 size_t   size); // Запрос на получение порции данных размера size
-							   // в буфер buffer
-	void send(const uint8_t* buffer, size_t size); // Запрос на отправку данных
-	void done()
-	{
-		m_done = true;
-		m_sock.close();
-	}
+	/* операции ввода/вывода для подклассов */
+	void receive(std::vector< uint8_t >& buffer);
+	void send(const std::vector< uint8_t >& buffer);
+	void done();
 
 	/* Callbacks ввода/вывода, которые нужно переопределить в подклассах */
-	virtual void on_receive() = 0;
-	virtual void on_sent()    = 0;
-	virtual void on_error()   = 0;
+	virtual void on_received() = 0;
+	virtual void on_sent()     = 0;
 
 private:
-	std::string m_identify;
+	const uint            m_io_timeout_ms = 10000;
+	std::string           m_identity;
+	asio::ip::tcp::socket m_socket;
+	DeadlineTimer         m_timer;
 
-	void on_receive_internal(const asio::error_code& ec, size_t bytes);
+	bool m_done{false};
+
+	void on_received_internal(const asio::error_code& ec, size_t bytes);
 	void on_sent_internal(const asio::error_code& ec, size_t bytes);
 	void timer_restart();
-
-	asio::ip::tcp::socket                                   m_sock;
-	asio::basic_waitable_timer< std::chrono::steady_clock > m_timer;
-
-	const uint m_io_timeout = 10; //таймаут на операции ввода/вывода в секундах
-
-	bool m_done;
-};
-
-// Прием и отправка изображений по самопальному "протоколу"
-class ProtoSession : public Session,
-					 public std::enable_shared_from_this< ProtoSession >
-{
-public:
-	ProtoSession(IInvoker& proc, asio::ip::tcp::socket&& sock)
-		: Session(proc, std::move(sock)), m_state(State::kReadHeader),
-		  m_have_response(false), m_have_errors(false)
-	{
-	}
-
-	virtual void start() override
-	{
-		receive((uint8_t*) &m_header, sizeof(m_header));
-	}
-
-protected:
-	virtual void on_receive() override;
-	virtual void on_sent() override;
-	virtual void on_error() override;
-	void on_complete();
-private:
-	static const size_t m_max_image_size =
-		100 * 1024 * 1024; // Максимальный размер картинки - 100 Мбайт
-	static const size_t m_max_text_size = 512;
-
-	enum class State
-	{
-		kReadHeader,
-		kReadText,
-		kReadImage,
-		kProcessing,
-		kWriteHeader,
-		kWriteResult
-	};
-	State m_state;
-
-	ProtoDataHeader        m_header;
-	std::vector< uint8_t > m_text_buffer;
-	std::vector< uint8_t > m_image_buffer;
-	TaskPtr                m_task;
-
-	ProtoResponseHeader m_response;
-
-	bool m_have_response;
-	bool m_have_errors;
-
-	void send_header(StatusCode code);
 };

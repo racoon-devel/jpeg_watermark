@@ -10,3 +10,8 @@ target_include_directories(jpeg_watermark_client PRIVATE ${CMAKE_CURRENT_SOURCE_
 
 add_dependencies(jpeg_watermark_client easylogging cxxopts asio)
 target_link_libraries(jpeg_watermark_client Threads::Threads easylogging cxxopts asio)
+
+if (WITH_ASAN)
+    target_compile_options(jpeg_watermark_client PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_options(jpeg_watermark_client PRIVATE -fsanitize=address)
+endif ()

@@ -14,7 +14,7 @@ void Task::execute() noexcept
 	m_handler();
 }
 
-Image Task::result() const
+const Image& Task::result() const
 {
 	if (m_exception)
 	{

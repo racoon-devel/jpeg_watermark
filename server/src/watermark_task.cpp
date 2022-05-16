@@ -26,9 +26,8 @@ Image WatermarkTask::on_execute()
 	const unsigned char green[] = {0, 255, 0};
 	img.draw_text(0, 0, m_text.c_str(), green, 0, 1, 57);
 
-	result.resize(m_source.size() * 2, 0);
+	result.resize(2 * m_source.size());
 	uint size = result.size();
-
 	img.save_jpeg_buffer(&result[0], size, 90);
 
 	result.resize(size, 0);
