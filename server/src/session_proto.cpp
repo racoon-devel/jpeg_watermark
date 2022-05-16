@@ -1,4 +1,4 @@
-#include "session_proto.hpp"
+#include "session/session_proto.hpp"
 
 #include <easylogging++.h>
 #include <io_service.hpp>

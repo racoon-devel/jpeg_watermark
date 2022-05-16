@@ -1,7 +1,7 @@
-#include <session_proto.hpp>
+#include <session/session_proto.hpp>
 #include "session_manager.hpp"
 
-#include "session.hpp"
+#include "session/session.hpp"
 #include "io_service.hpp"
 #include "easylogging++.h"
 

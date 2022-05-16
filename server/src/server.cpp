@@ -1,6 +1,12 @@
 #include "server.hpp"
-#include "session.hpp"
+
 #include "easylogging++.h"
+
+Server::Server(std::string addr, uint port)
+	: m_addr(std::move(addr)), m_port(port), m_acceptor(IoService::get()),
+	  m_sock(IoService::get())
+{
+}
 
 void Server::run(Server::Handler&& handler)
 {
@@ -48,3 +54,4 @@ void Server::on_accept(const asio::error_code& ec)
 	m_acceptor.async_accept(
 		m_sock, std::bind(&Server::on_accept, this, std::placeholders::_1));
 }
+

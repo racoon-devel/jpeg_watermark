@@ -2,9 +2,6 @@
 
 #include <cstdint>
 #include <cstddef>
-#include <string>
-
-#include "image.hpp"
 
 #pragma pack(1)
 
@@ -52,33 +49,6 @@ struct PrintTextPayload
 
 	//! размер изображения
 	uint32_t image_size;
-
-	/**
-	 * Сериализовать текст и картинку в буфер байт
-	 * @param text Строка
-	 * @param image Изображение
-	 * @return Результат
-	 */
-	static auto serialize(const std::string& text, const Image& image)
-	{
-		std::vector< uint8_t > result(sizeof(PrintTextPayload) + text.size()
-									  + image.size());
-
-		auto payload = reinterpret_cast< PrintTextPayload* >(result.data());
-		payload->text_size  = text.size();
-		payload->image_size = image.size();
-
-		auto pos = std::copy(text.begin(), text.end(),
-							 result.begin() + sizeof(PrintTextPayload));
-		std::copy(image.begin(), image.end(), pos);
-
-		return result;
-	}
-
-	static constexpr PayloadType type()
-	{
-		return PayloadType::kPrintTextRequest;
-	}
 };
 
 /**

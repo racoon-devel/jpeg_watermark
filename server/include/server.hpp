@@ -6,9 +6,6 @@
 #include "asio.hpp"
 #include "io_service.hpp"
 
-class Session;
-class WorkerPool;
-
 /**
  * @class Server принимает соединения по TCP и запускает на каждое соединение
  * сессию обработки запросов
@@ -24,11 +21,7 @@ public:
 	 * @param addr Адрес
 	 * @param port Порт
 	 */
-	Server(std::string addr, uint port)
-		: m_addr(std::move(addr)), m_port(port), m_acceptor(IoService::get()),
-		  m_sock(IoService::get())
-	{
-	}
+	Server(std::string addr, uint port);
 
 	/**
 	 * Запуск сервера
