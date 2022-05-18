@@ -24,6 +24,9 @@ struct Service
 		asio::signal_set signals(io, SIGINT, SIGTERM);
 		signals.async_wait([this](auto& ec, int) { on_shutdown(ec); });
 
+		// запускаем менеджер соединений
+		m_mgr.run();
+
 		// запускаем TCP-сервер
 		m_server.run([this](auto&& socket)
 					 { on_client(std::forward< decltype(socket) >(socket)); });
