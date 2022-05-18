@@ -45,7 +45,7 @@ public:
 	 */
 	void shutdown();
 
-	~WorkerPool();
+	~WorkerPool() override;
 
 private:
 	static const uint m_default_threads = 4;

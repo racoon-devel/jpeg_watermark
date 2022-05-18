@@ -13,7 +13,9 @@ WorkerPool::WorkerPool(uint max_jobs)
 	: m_max_jobs(max_jobs), m_thread_count(std::thread::hardware_concurrency())
 {
 	if (!m_thread_count)
+	{
 		m_thread_count = m_default_threads;
+	}
 
 	// нет смысла порождать много потоков, если макс. кол-во одновременно
 	// работающих задач ограничено
@@ -25,6 +27,13 @@ WorkerPool::WorkerPool(uint max_jobs)
 
 void WorkerPool::run()
 {
+	if (!m_threads.empty())
+	{
+		return;
+	}
+
+	m_stop = false;
+
 	for (uint idx = 0; idx < m_thread_count; idx++)
 	{
 		m_threads.emplace_back(
@@ -70,16 +79,16 @@ void WorkerPool::run()
 
 bool WorkerPool::invoke(TaskPtr task)
 {
+	std::unique_lock< std::mutex > lock(m_mutex);
+
+	// Проверяем условие, достигнут ли максимум задач - сколько сейчас в
+	// очереди и сколько в обработке
+	if (m_max_jobs && m_now_running.load() + m_tasks.size() >= m_max_jobs)
 	{
-		std::unique_lock< std::mutex > lock(m_mutex);
-
-		// Проверяем условие, достигнут ли максимум задач - сколько сейчас в
-		// очереди и сколько в обработке
-		if (m_max_jobs && m_now_running.load() + m_tasks.size() >= m_max_jobs)
-			return false;
-
-		m_tasks.push(std::move(task));
+		return false;
 	}
+
+	m_tasks.push(std::move(task));
 
 	m_cond.notify_one();
 
@@ -91,9 +100,9 @@ void WorkerPool::shutdown()
 	{
 		std::unique_lock< std::mutex > lock(m_mutex);
 		m_stop = true;
-	}
 
-	m_cond.notify_all();
+		m_cond.notify_all();
+	}
 
 	for (std::thread& worker : m_threads)
 	{
