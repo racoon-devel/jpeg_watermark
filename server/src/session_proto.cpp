@@ -165,6 +165,7 @@ void ProtoSession::on_complete()
 	{
 		const auto& image_buffer = m_task->result();
 		send_response(Status::kOk, image_buffer);
+		m_task.reset();
 	}
 	catch (const std::exception& e)
 	{

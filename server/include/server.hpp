@@ -1,10 +1,8 @@
 #pragma once
 
 #include <string>
-#include <list>
 
 #include "asio.hpp"
-#include "io_service.hpp"
 
 /**
  * @class Server принимает соединения по TCP и запускает на каждое соединение

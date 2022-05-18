@@ -42,7 +42,7 @@ private:
 	union
 	{
 		proto::PrintTextPayload print_text_p;
-	} m_payload;
+	} m_payload{};
 
 	TaskPtr m_task;
 

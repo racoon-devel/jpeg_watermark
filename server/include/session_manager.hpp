@@ -11,7 +11,7 @@ class Session;
 /**
  * @class SessionManager управляет клиентскими подключениями
  */
-class SessionManager
+class SessionManager final
 {
 public:
 	SessionManager();

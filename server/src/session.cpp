@@ -24,6 +24,7 @@ Session::Session(IInvoker& invoker, asio::ip::tcp::socket&& sock)
 	catch (const std::exception&)
 	{
 	}
+
 }
 
 void Session::receive(std::vector< uint8_t >& buffer)

@@ -2,6 +2,8 @@
 
 #include "easylogging++.h"
 
+#include "io_service.hpp"
+
 Server::Server(std::string addr, uint port)
 	: m_addr(std::move(addr)), m_port(port), m_acceptor(IoService::get()),
 	  m_sock(IoService::get())

@@ -7,7 +7,6 @@
 
 namespace proto
 {
-
 //! сигнатура, идентифицирующая протокол
 static constexpr uint16_t Signature = 0x3fe0;
 
@@ -45,10 +44,10 @@ struct Header
 struct PrintTextPayload
 {
 	//! размер строки текста
-	uint16_t text_size;
+	uint16_t text_size{0};
 
 	//! размер изображения
-	uint32_t image_size;
+	uint32_t image_size{0};
 };
 
 /**
@@ -75,10 +74,10 @@ enum class Status : uint8_t
 struct ResponsePayload
 {
 	//! результат выполнения запроса
-	Status status;
+	Status status{Status::kError};
 
 	//! размер изображения
-	uint32_t image_size;
+	uint32_t image_size{0};
 };
 
 } // namespace proto

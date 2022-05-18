@@ -51,4 +51,6 @@ void SessionManager::on_tick(const asio::error_code& ec)
 	{
 		LOG(DEBUG) << total << " sessions released";
 	}
+	
+	LOG(DEBUG) << "Active sessions: " << m_sessions.size();
 }
