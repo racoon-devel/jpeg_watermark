@@ -149,28 +149,33 @@ void ProtoSession::process_print_text()
 		IoService::get().post([session] { session->on_complete(); });
 	};
 
-	m_task = std::make_shared< WatermarkTask >(
+	auto task = std::make_shared< WatermarkTask >(
 		std::move(completeHandler), std::move(image), std::move(text));
 
-	if (!m_invoker.invoke(m_task))
+	if (!m_invoker.invoke(task))
 	{
 		LOG(WARNING) << this << "Request rejected, max jobs count reached";
 		send_response(Status::kBusy);
+		return;
 	}
+
+	m_task = std::move(task);
 }
 
 void ProtoSession::on_complete()
 {
+	std::shared_ptr< void > defer(nullptr, [this](void*) { m_task.reset(); });
+
 	try
 	{
 		const auto& image_buffer = m_task->result();
 		send_response(Status::kOk, image_buffer);
-		m_task.reset();
 	}
 	catch (const std::exception& e)
 	{
 		LOG(ERROR) << "Process task failed: " << e.what();
 		send_response(Status::kError);
 	}
+
 	LOG(INFO) << this << "Image job done";
 }
