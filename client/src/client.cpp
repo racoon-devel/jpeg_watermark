@@ -5,7 +5,7 @@
 
 static uint max_client_id;
 
-const uint io_timeout = 5000;
+const uint io_timeout_ms = 30000;
 
 std::ostream& operator<<(std::ostream& os, Client* client)
 {
@@ -157,7 +157,7 @@ void Client::on_receive_image(const asio::error_code& ec, size_t bytes)
 void Client::restart_timeout()
 {
 	m_timer.cancel();
-	m_timer.expires_from_now(std::chrono::milliseconds(io_timeout));
+	m_timer.expires_from_now(std::chrono::milliseconds(io_timeout_ms));
 
 	m_timer.async_wait(
 		[this](const auto& ec)
