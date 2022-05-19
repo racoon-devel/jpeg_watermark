@@ -1,11 +1,9 @@
 #include "task/watermark_task.hpp"
 
 #include "easylogging++.h"
-#include <jpeglib.h>
+
 #include <jerror.h>
-#define cimg_display 0
-#define cimg_plugin  "plugins/jpeg_buffer.h"
-#define cimg_use_pthread
+
 #include "CImg.h"
 
 WatermarkTask::WatermarkTask(Task::CompleteHandler&& handler,

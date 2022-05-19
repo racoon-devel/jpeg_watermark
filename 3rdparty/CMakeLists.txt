@@ -13,7 +13,7 @@ add_subdirectory(cxxopts)
 # библиотека обработки изображений
 add_library(cimg INTERFACE)
 target_include_directories(cimg INTERFACE CImg/)
-target_compile_definitions(cimg INTERFACE -Dcimg_use_jpeg)
+target_compile_definitions(cimg INTERFACE -Dcimg_use_jpeg -Dcimg_use_pthread -Dcimg_plugin="plugins/jpeg_buffer.h" -Dcimg_display=0)
 
 # standalone asio
 add_library(asio INTERFACE)
