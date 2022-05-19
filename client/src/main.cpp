@@ -61,6 +61,8 @@ int main(int argc, char** argv)
 							"%datetime [%level] %msg");
 	el::Loggers::reconfigureLogger("default", defaultConf);
 
+	using namespace cxxopts;
+
 	// Parse options
 	cxxopts::Options options("Watermark Client",
 							 "Client for the demo JPEG Watermark server");
@@ -68,24 +70,17 @@ int main(int argc, char** argv)
 	Client::Settings settings;
 	PrintTextRequest request;
 
-	options.add_options()(
-		"a,addr", "Address",
-		cxxopts::value< string >()->default_value(settings.address),
-		"Server IPv4 address")(
-		"p,port", "Port",
-		cxxopts::value< int >()->default_value(std::to_string(settings.port)),
-		"Server port")("i,image", "Image", cxxopts::value< string >(),
-					   "Source image path")(
-		"T,text", "Text", cxxopts::value< string >(),
-		"Text for drawing")("t,timeout", "Timeout",
-							cxxopts::value< uint >()->default_value(
-								std::to_string(settings.timeout_sec)),
-							"Server reconnect interval")(
-		"c,clients", "Clients", cxxopts::value< uint >()->default_value("1"),
-		"Clients count")(
-		"o,output", "Output",
-		cxxopts::value< string >()->default_value("output.jpg"),
-		"Image path for result")("help", "Print help");
+
+	options.add_options()
+		("a,addr", "Server IPv4 address", value< string >()->default_value(settings.address))
+		("p,port", "Server port",  value< int >()->default_value(std::to_string(settings.port)))
+		("i,image", "Source image path",  value< string >())
+		("T,text", "Text for drawing",  value< string >())
+		("t,timeout", "Server reconnect interval", value< uint >()->default_value(std::to_string(settings.timeout_sec)))
+		("c,clients", "Clients count",  value< uint >()->default_value("1"))
+		("o,output", "Image path for result", value< string >()->default_value("output.jpg"))
+		("help","Print help");
+
 
 	uint   clients_count;
 	string image_path, output_path;

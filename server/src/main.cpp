@@ -20,20 +20,17 @@ int main(int argc, char** argv)
 	// Дефолтовые настройки сервиса по умолчанию
 	Service::Settings settings;
 
+	using namespace cxxopts;
+
 	// Parse options
-	cxxopts::Options options("Watermark JPEG Server",
+	Options options("Watermark JPEG Server",
 							 "Server for drawing watermarks");
 
 	options.add_options()(
-		"a,addr", "Address",
-		cxxopts::value< std::string >()->default_value(settings.address),
-		"Server IPv4 address")(
-		"p,port", "Port",
-		cxxopts::value< uint >()->default_value(std::to_string(settings.port)),
-		"Server port")("L,limit", "Limit",
-					   cxxopts::value< uint >()->default_value(
-						   std::to_string(settings.max_jobs)),
-					   "Maximum jobs limitation")("help", "Print help");
+		"a,addr", "Server IPv4 address", value< std::string >()->default_value(settings.address))
+		("p,port", "Port", value< uint >()->default_value(std::to_string(settings.port)))
+		("L,limit", "Maximum job limit", value< uint >()->default_value(std::to_string(settings.max_jobs)))
+		("help", "Print help");
 
 	try
 	{
@@ -49,7 +46,7 @@ int main(int argc, char** argv)
 		settings.port     = opts["port"].as< uint >();
 		settings.max_jobs = opts["limit"].as< uint >();
 	}
-	catch (const cxxopts::OptionException& e)
+	catch (const OptionException& e)
 	{
 		LOG(ERROR) << e.what();
 		return 1;
