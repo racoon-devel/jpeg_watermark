@@ -144,9 +144,9 @@ void ProtoSession::process_print_text()
 
 	LOG(DEBUG) << this << "Image received";
 
-	auto completeHandler = [session = shared_from_this()]() noexcept
+	auto completeHandler = [this]() noexcept
 	{
-		IoService::get().post([session] { session->on_complete(); });
+		IoService::get().post([this] { on_complete(); });
 	};
 
 	auto task = std::make_shared< WatermarkTask >(

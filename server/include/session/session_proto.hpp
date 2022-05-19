@@ -8,8 +8,7 @@
  * @class ProtoSession тип сессии для обмена с клиентом данными по своему
  * протоколу
  */
-class ProtoSession : public Session,
-					 public std::enable_shared_from_this< ProtoSession >
+class ProtoSession : public Session
 {
 public:
 	/**

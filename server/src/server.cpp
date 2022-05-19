@@ -56,4 +56,3 @@ void Server::on_accept(const asio::error_code& ec)
 	m_acceptor.async_accept(
 		m_sock, std::bind(&Server::on_accept, this, std::placeholders::_1));
 }
-

@@ -25,9 +25,7 @@ public:
 	 * Ctor
 	 * @param handler Обработчик будет вызван после завершения выполнения задачи
 	 */
-	explicit Task(CompleteHandler&& handler)
-		: m_handler(std::move(handler))
-	{}
+	explicit Task(CompleteHandler&& handler) : m_handler(std::move(handler)) {}
 
 	/**
 	 * Выполнить команду
