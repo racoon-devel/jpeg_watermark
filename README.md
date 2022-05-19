@@ -15,15 +15,20 @@
 
 Отдельно должно быть разработано консольное клиентское приложение, отсылающее указанные при запуске изображение и текст на сервер и записывающее результат в указанную папку. В случае если сервер сообщает о невозможности обработки (сервер занят), клиент делает попытку через задаваемый таймаут. 
 
-# Linux build
+## Dependencies
 
-```
+* `libjpeg`
+
+## Linux build
+
+```shell
+git submodule update --init
 mkdir build && cd build
 cmake ..
 make
 ```
 
-# Запуск сервера
+## Запуск сервера
 
 ```
 ./jpeg_watermark_server [-a <addr>] [-p <port>] [-t <max_jobs>]
@@ -35,7 +40,7 @@ make
 
 ```
 
-# Запуск клиента
+## Запуск клиента
 
 ```
 ./jpeg_watermark_clinet -i <image> -T <text> [-o <output_image>] [-a <addr>] [-p <port>] [-t <timeout>] [-c client_count]
