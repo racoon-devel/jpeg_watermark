@@ -27,12 +27,28 @@ make
 
 ```
 ./jpeg_watermark_server [-a <addr>] [-p <port>] [-t <max_jobs>]
+
+  -a, --addr arg   Server IPv4 address (default: 127.0.0.1)
+  -p, --port arg   Port (default: 9001)
+  -L, --limit arg  Maximum job limit (default: 0)
+      --help       Print help
+
 ```
 
 # Запуск клиента
 
 ```
 ./jpeg_watermark_clinet -i <image> -T <text> [-o <output_image>] [-a <addr>] [-p <port>] [-t <timeout>] [-c client_count]
+
+  -a, --addr arg     Server IPv4 address (default: 127.0.0.1)
+  -p, --port arg     Server port (default: 9001)
+  -i, --image arg    Source image path
+  -T, --text arg     Text for drawing
+  -t, --timeout arg  Server reconnect interval (default: 5)
+  -c, --clients arg  Clients count (default: 1)
+  -o, --output arg   Image path for result (default: output.jpg)
+      --help         Print help
+
 ```
 
 
