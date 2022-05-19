@@ -102,11 +102,12 @@ int main(int argc, char** argv)
 
 		settings.address     = opts["addr"].as< string >();
 		settings.port        = opts["port"].as< int >();
-		image_path           = opts["image"].as< string >();
 		request.text         = opts["text"].as< string >();
 		settings.timeout_sec = opts["timeout"].as< uint >();
-		output_path          = opts["output"].as< string >();
-		clients_count        = opts["clients"].as< uint >();
+
+		image_path    = opts["image"].as< string >();
+		output_path   = opts["output"].as< string >();
+		clients_count = opts["clients"].as< uint >();
 	}
 	catch (const cxxopts::OptionException& e)
 	{
@@ -122,16 +123,28 @@ int main(int argc, char** argv)
 
 	list< Client > clients;
 
-	for (uint i = 0; i < clients_count; i++)
+	try
 	{
-		clients.emplace_back(settings);
-		clients.back().execute(request);
+		for (uint i = 0; i < clients_count; i++)
+		{
+			clients.emplace_back(settings);
+			clients.back().execute(request);
+		}
+	}
+	catch (const std::exception& e)
+	{
+		LOG(ERROR) << "Run client failed: " << e.what();
+		return 2;
 	}
 
+	/*
+	 * Запускаем IO пока все клиенты не отработают и не отключатся
+	 */
 	IoService::get().run();
 
-	uint idx = 0;
-	int  ret = 0;
+	uint idx     = 0;
+	int  ret     = 0;
+	uint success = 0;
 
 	for (const auto& client : clients)
 	{
@@ -144,6 +157,8 @@ int main(int argc, char** argv)
 			save_image(file_path, client.image());
 
 			LOG(INFO) << "Image " << file_path << " saved";
+
+			success++;
 		}
 		else
 		{
@@ -153,5 +168,6 @@ int main(int argc, char** argv)
 		idx++;
 	}
 
+	LOG(INFO) << "Success " << success << " / " << clients_count;
 	return ret;
 }

@@ -5,6 +5,8 @@
 
 static uint max_client_id;
 
+const uint io_timeout = 5000;
+
 std::ostream& operator<<(std::ostream& os, Client* client)
 {
 	os << "[ Client: " << client->id() << " ] ";
@@ -40,28 +42,29 @@ void Client::request(proto::PayloadType            type,
 
 void Client::send_request()
 {
-	asio::ip::tcp::endpoint ep(
+	asio::ip::tcp::endpoint endpoint(
 		asio::ip::address::from_string(m_settings.address), m_settings.port);
 	m_socket.open(asio::ip::tcp::v4());
-	m_socket.connect(ep);
 
-	asio::async_write(
-		m_socket, asio::const_buffer(&m_send_buffer[0], m_send_buffer.size()),
-		[this](const asio::error_code& ec, size_t bytes)
+	restart_timeout();
+
+	m_socket.async_connect(
+		endpoint,
+		[this](const asio::error_code& ec)
 		{
 			if (ec)
 			{
-				LOG(ERROR) << this << "Write failed: " << ec.message();
+				LOG(ERROR) << this << "Connect failed: " << ec.message();
+				done();
 				return;
 			}
 
-			m_recv_buffer.resize(sizeof(proto::Header)
-								 + sizeof(proto::ResponsePayload));
+			restart_timeout();
 
-			asio::async_read(
+			asio::async_write(
 				m_socket,
-				asio::buffer(m_recv_buffer.data(), m_recv_buffer.size()),
-				std::bind(&Client::on_receive, this, std::placeholders::_1,
+				asio::const_buffer(&m_send_buffer[0], m_send_buffer.size()),
+				std::bind(&Client::on_sent, this, std::placeholders::_1,
 						  std::placeholders::_2));
 		});
 }
@@ -70,9 +73,12 @@ void Client::on_receive(const asio::error_code& ec, size_t bytes)
 {
 	using namespace proto;
 
+	m_timer.cancel();
+
 	if (ec)
 	{
 		LOG(ERROR) << this << "Read failed: " << ec.message();
+		done();
 		return;
 	}
 
@@ -92,9 +98,8 @@ void Client::on_receive(const asio::error_code& ec, size_t bytes)
 	case Status::kBusy:
 		LOG(WARNING) << this << "Server busy. Reconnect after timeout";
 
-		m_timer.expires_from_now(std::chrono::seconds(m_settings.timeout_sec));
-
 		m_socket.close();
+		m_timer.expires_from_now(std::chrono::seconds(m_settings.timeout_sec));
 
 		m_timer.async_wait(
 			[this](const asio::error_code& ec)
@@ -124,6 +129,8 @@ void Client::on_receive(const asio::error_code& ec, size_t bytes)
 
 		m_result_image.resize(response->image_size);
 
+		restart_timeout();
+
 		asio::async_read(
 			m_socket, asio::buffer(&m_result_image[0], m_result_image.size()),
 			std::bind(&Client::on_receive_image, this, std::placeholders::_1,
@@ -134,6 +141,8 @@ void Client::on_receive(const asio::error_code& ec, size_t bytes)
 
 void Client::on_receive_image(const asio::error_code& ec, size_t bytes)
 {
+	done();
+
 	if (ec)
 	{
 		LOG(ERROR) << this << "Receive image failed: " << ec.message();
@@ -143,4 +152,50 @@ void Client::on_receive_image(const asio::error_code& ec, size_t bytes)
 	LOG(INFO) << this << "Image received";
 
 	m_success = true;
+}
+
+void Client::restart_timeout()
+{
+	m_timer.cancel();
+	m_timer.expires_from_now(std::chrono::milliseconds(io_timeout));
+
+	m_timer.async_wait(
+		[this](const auto& ec)
+		{
+			if (ec)
+			{
+				return;
+			}
+
+			LOG(ERROR) << this << "Operation timeout";
+			done();
+		});
+}
+
+void Client::done()
+{
+	m_timer.cancel();
+	m_socket.close();
+}
+
+void Client::on_sent(const asio::error_code& ec, size_t bytes)
+{
+	{
+		if (ec)
+		{
+			LOG(ERROR) << this << "Write failed: " << ec.message();
+			done();
+			return;
+		}
+
+		restart_timeout();
+
+		m_recv_buffer.resize(sizeof(proto::Header)
+							 + sizeof(proto::ResponsePayload));
+
+		asio::async_read(
+			m_socket, asio::buffer(m_recv_buffer.data(), m_recv_buffer.size()),
+			std::bind(&Client::on_receive, this, std::placeholders::_1,
+					  std::placeholders::_2));
+	}
 }

@@ -38,7 +38,8 @@ public:
 
 	/**
 	 * Выполнить запрос к серверу
-	 * @tparam Request Тип запроса (должен иметь методы payload_type() и serialize()
+	 * @tparam Request Тип запроса (должен иметь методы payload_type() и
+	 * serialize()
 	 * @param req Запрос
 	 */
 	template< class Request >
@@ -72,7 +73,11 @@ private:
 	void request(proto::PayloadType            type,
 				 const std::vector< uint8_t >& payload);
 
-	void send_request();
 	void on_receive(const asio::error_code& ec, size_t bytes);
+	void on_sent(const asio::error_code& ec, size_t bytes);
 	void on_receive_image(const asio::error_code& ec, size_t bytes);
+
+	void send_request();
+	void restart_timeout();
+	void done();
 };
